@@ -288,8 +288,15 @@ body {
     box-shadow 180ms var(--ease-out);
 }
 
-.pin-marker:hover .pin {
-  transform: scale(1.12);
+.pin-marker:active .pin {
+  transform: scale(0.94);
+}
+
+/* Touch devices fire :hover on tap, which leaves the pin stuck enlarged. */
+@media (hover: hover) and (pointer: fine) {
+  .pin-marker:hover .pin {
+    transform: scale(1.12);
+  }
 }
 
 .pin[data-kind="food"] {
