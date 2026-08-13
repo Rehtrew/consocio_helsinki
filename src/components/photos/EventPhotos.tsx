@@ -32,16 +32,13 @@ function Camera() {
   );
 }
 
-/** The SDK's own wording is opaque when our route is the one refusing, so
- *  translate the two cases we can cause ourselves and pass everything else
- *  through verbatim — a real message beats a tidy but useless one. */
-function describe(raw: string) {
-  if (/configured|503/i.test(raw)) {
-    return "Billed-uploads er ikke slået til endnu.";
-  }
-  if (/retrieve the client token/i.test(raw)) {
-    return "Kunne ikke få lov til at uploade. Er Blob-storet forbundet til projektet og deployet siden?";
-  }
+/** Only the "no store connected" case gets rewritten, and it is recognised by
+ *  its status code. Matching on message text once swallowed the real reason
+ *  for a failure — whatever the server says now reaches the screen. */
+function describe(e: unknown) {
+  const status = (e as { status?: number } | null)?.status;
+  if (status === 503) return "Billed-uploads er ikke slået til endnu.";
+  const raw = e instanceof Error ? e.message : String(e);
   return `Kunne ikke uploade: ${raw}`;
 }
 
@@ -100,8 +97,7 @@ export function EventPhotos({ eventId }: { eventId: string }) {
         await store.add(eventId, file, store.who);
       }
     } catch (e) {
-      const raw = e instanceof Error ? e.message : String(e);
-      setError(describe(raw));
+      setError(describe(e));
     } finally {
       setBusy(false);
       if (input.current) input.current.value = "";

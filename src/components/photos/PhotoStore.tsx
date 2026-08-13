@@ -125,7 +125,11 @@ export function PhotoStoreProvider({
 
       const res = await fetch("/api/photos", { method: "POST", body: form });
       const saved = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(saved.error ?? `Upload fejlede (${res.status})`);
+      if (!res.ok) {
+        const err = new Error(saved.error ?? `Upload fejlede (${res.status})`);
+        (err as Error & { status?: number }).status = res.status;
+        throw err;
+      }
 
       setPhotos((prev) => [...prev, saved as TripPhoto]);
     },

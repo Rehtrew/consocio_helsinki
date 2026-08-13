@@ -1,14 +1,13 @@
 import { del, list, put } from "@vercel/blob";
-import { DAYS } from "@/data/trip";
+import {
+  BLOB_ACCESS,
+  EVENT_IDS,
+  configured,
+  parsePhotoPath,
+  photoSrc,
+} from "@/lib/photo-path";
 
 export const dynamic = "force-dynamic";
-
-const EVENT_IDS = new Set(DAYS.flatMap((d) => d.events.map((e) => e.id)));
-
-/** photos/<event id>/<name>--<8 chars>.<ext> — everything we need to show a
- *  photo lives in the path, so there is no database to keep in step. */
-const PATHNAME =
-  /^photos\/([a-z0-9-]{2,40})\/([\p{L}0-9 -]{1,40})--([a-z0-9]{8})\.(jpe?g|png|webp)$/u;
 
 /** Vercel caps a serverless request body at 4.5 MB. The browser shrinks
  *  photos well below that before sending, so this is only a guard. */
@@ -19,16 +18,6 @@ const EXT: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
-
-function parse(pathname: string) {
-  const m = PATHNAME.exec(pathname);
-  if (!m) return null;
-  const [, eventId, name] = m;
-  if (!EVENT_IDS.has(eventId)) return null;
-  return { eventId, who: name.replace(/-/g, " ") };
-}
-
-const configured = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 
 export async function GET() {
   // Before a Blob store is connected the site still works; the upload
@@ -44,10 +33,10 @@ export async function GET() {
     const { blobs } = await list({ prefix: "photos/", limit: 1000 });
     const photos = blobs
       .map((b) => {
-        const meta = parse(b.pathname);
+        const meta = parsePhotoPath(b.pathname);
         if (!meta) return null;
         return {
-          url: b.url,
+          url: photoSrc(b.pathname),
           pathname: b.pathname,
           eventId: meta.eventId,
           who: meta.who,
@@ -122,19 +111,19 @@ export async function POST(request: Request) {
     const rand = Math.random().toString(36).slice(2, 10).padEnd(8, "0");
     const pathname = `photos/${eventId}/${name}--${rand}.${ext}`;
 
-    if (!parse(pathname)) {
+    if (!parsePhotoPath(pathname)) {
       return Response.json({ error: "Ugyldigt navn" }, { status: 400 });
     }
 
-    const blob = await put(pathname, file, {
-      access: "public",
+    await put(pathname, file, {
+      access: BLOB_ACCESS,
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: file.type,
     });
 
     return Response.json({
-      url: blob.url,
+      url: photoSrc(pathname),
       pathname,
       eventId,
       who: name.replace(/-/g, " "),
@@ -156,7 +145,7 @@ export async function DELETE(request: Request) {
   }
 
   const pathname = new URL(request.url).searchParams.get("pathname");
-  if (!pathname || !parse(pathname)) {
+  if (!pathname || !parsePhotoPath(pathname)) {
     return Response.json({ error: "Bad pathname" }, { status: 400 });
   }
 
