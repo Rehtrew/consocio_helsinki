@@ -1,7 +1,17 @@
 import Image from "next/image";
-import { BUDGET, FIRST_VISIT, PLACES, type Day, type EventItem } from "@/data/trip";
+import {
+  BUDGET,
+  FIRST_VISIT,
+  PLACES,
+  type Day,
+  type EventItem,
+} from "@/data/trip";
 import { kr, mapsSearch, walkingDirections } from "@/lib/links";
+import { DayTile } from "./DayTile";
+import { FlightCard } from "./FlightCard";
 import { Reveal } from "./Reveal";
+import { RouteSketch } from "./RouteSketch";
+import { Scribble } from "./Scribble";
 
 const DOT: Record<string, string> = {
   food: "bg-accent",
@@ -12,6 +22,15 @@ const DOT: Record<string, string> = {
   transport: "bg-ink-3",
   rest: "bg-ink-3",
 };
+
+/** Each print is dropped at a slightly different angle, but the same angle
+ *  every time — derived from the id so nothing shifts between renders. */
+const TILT = [-2.1, 1.6, -1.2, 2.3, -1.7, 1.1];
+function tiltFor(id: string) {
+  let n = 0;
+  for (const ch of id) n = (n + ch.charCodeAt(0)) % 997;
+  return TILT[n % TILT.length];
+}
 
 function ArrowOut() {
   return (
@@ -34,7 +53,15 @@ function ArrowOut() {
   );
 }
 
-function EventRow({ event, last }: { event: EventItem; last: boolean }) {
+function EventRow({
+  event,
+  last,
+  dateLabel,
+}: {
+  event: EventItem;
+  last: boolean;
+  dateLabel: string;
+}) {
   const place = event.place ? PLACES[event.place] : undefined;
   // Introduce a place once. On later visits the card stays lean — no repeated
   // photo, description or website link.
@@ -77,8 +104,8 @@ function EventRow({ event, last }: { event: EventItem; last: boolean }) {
       </div>
 
       {/* Card */}
-      <div className="min-w-0 flex-1 pb-9">
-        <div className="flex items-start gap-4">
+      <div className="min-w-0 flex-1 pb-10">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-7">
           <div className="min-w-0 flex-1">
             <h3
               className={`${
@@ -121,16 +148,36 @@ function EventRow({ event, last }: { event: EventItem; last: boolean }) {
               </ul>
             )}
 
+            {event.flight && (
+              <div className="mt-4 max-w-md">
+                <FlightCard
+                  flight={event.flight}
+                  label={
+                    event.flight.fromCode === "CPH" ? "Udrejse" : "Hjemrejse"
+                  }
+                  date={dateLabel}
+                />
+                {event.flight.arriveEstimated && (
+                  <p className="mt-2 text-[12.5px] leading-relaxed text-ink-3">
+                    Ankomsttidspunktet stod ikke i programmet — det er regnet ud
+                    fra flyvetiden på vej derop.
+                  </p>
+                )}
+              </div>
+            )}
+
             {event.owner && (
+              // Inline flow rather than flex, so it wraps as a sentence on a
+              // narrow screen instead of breaking into ragged columns.
               <p
-                className={`mt-3 inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13.5px] ${
+                className={`mt-3 inline-block rounded-lg px-2.5 py-1.5 text-[13.5px] leading-relaxed ${
                   event.owner.done
                     ? "bg-forest-soft text-forest"
                     : "bg-heat-soft text-heat"
                 }`}
               >
-                <span className="font-medium">{event.owner.who}</span>
-                <span className="opacity-85">{event.owner.task}</span>
+                <span className="font-medium">{event.owner.who}</span>{" "}
+                <span className="opacity-85">{event.owner.task}</span>{" "}
                 <span className="opacity-70">
                   {event.owner.done ? "· planlagt" : "· mangler"}
                 </span>
@@ -173,20 +220,35 @@ function EventRow({ event, last }: { event: EventItem; last: boolean }) {
           </div>
 
           {photo && place && (
-            <a
-              href={place.url ?? mapsSearch(place)}
-              target="_blank"
-              rel="noreferrer"
-              className="press relative block h-[76px] w-[76px] shrink-0 overflow-hidden rounded-xl shadow-md sm:h-[104px] sm:w-[104px]"
-            >
-              <Image
-                src={photo}
-                alt={place.name}
-                fill
-                sizes="104px"
-                className="object-cover"
-              />
-            </a>
+            <figure className="print-tilt shrink-0 sm:w-[262px] sm:pt-1">
+              {event.scribble && (
+                <Scribble
+                  text={event.scribble}
+                  direction="down"
+                  className="mb-1 pr-7"
+                />
+              )}
+              <a
+                href={place.url ?? mapsSearch(place)}
+                target="_blank"
+                rel="noreferrer"
+                className="print block"
+                style={{ transform: `rotate(${tiltFor(event.id)}deg)` }}
+              >
+                <div className="relative aspect-[4/3] overflow-hidden rounded-[3px]">
+                  <Image
+                    src={photo}
+                    alt={place.name}
+                    fill
+                    sizes="(max-width: 640px) 90vw, 262px"
+                    className="object-cover"
+                  />
+                </div>
+                <figcaption className="hand pt-2 pb-0.5 text-center text-[15px] text-ink-3">
+                  {place.name}
+                </figcaption>
+              </a>
+            </figure>
           )}
         </div>
       </div>
@@ -200,48 +262,55 @@ export function DaySection({ day, index }: { day: Day; index: number }) {
   const stops = new Set(
     day.events.map((e) => e.place).filter((p): p is string => Boolean(p)),
   ).size;
+  const dayNumber = Number(day.date.slice(8, 10));
+  const dateLabel = `${day.weekday} ${dayNumber}.8.`;
 
   return (
     <section id={day.id} className="scroll-mt-24">
       <Reveal>
-        <div className="border-t border-line pt-10">
-          <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <div className="grid gap-x-10 gap-y-8 border-t border-line pt-10 lg:grid-cols-[1fr_320px]">
+          <div className="flex items-start gap-5">
+            <DayTile weekday={day.short} day={dayNumber} />
             <div>
               <p className="text-[13px] text-ink-3">
-                Dag {index + 1} · {day.weekday} den{" "}
-                {Number(day.date.slice(8, 10))}. august
+                Dag {index + 1} · {day.weekday} den {dayNumber}. august
               </p>
-              <h2 className="display mt-2.5 text-[clamp(1.9rem,5.5vw,2.9rem)]">
+              <h2 className="display mt-1.5 text-[clamp(1.9rem,5.5vw,2.9rem)]">
                 {day.title}
               </h2>
               <p className="mt-3 max-w-lg text-[15.5px] leading-relaxed text-ink-2">
                 {day.subtitle}
               </p>
-            </div>
 
-            <dl className="flex gap-7 pb-1">
-              <div>
-                <dt className="text-[13px] text-ink-3">Stop</dt>
-                <dd className="tnum mt-0.5 text-[19px]">{stops}</dd>
-              </div>
-              {total > 0 && (
+              <dl className="mt-5 flex gap-7">
                 <div>
-                  <dt className="text-[13px] text-ink-3">Budget</dt>
-                  <dd className="tnum mt-0.5 text-[19px]">{kr(total)} kr.</dd>
+                  <dt className="text-[13px] text-ink-3">Stop</dt>
+                  <dd className="tnum mt-0.5 text-[19px]">{stops}</dd>
                 </div>
-              )}
-            </dl>
+                {total > 0 && (
+                  <div>
+                    <dt className="text-[13px] text-ink-3">Budget</dt>
+                    <dd className="tnum mt-0.5 text-[19px]">{kr(total)} kr.</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          </div>
+
+          <div className="max-w-[340px] lg:pt-1">
+            <RouteSketch dayId={day.id} />
           </div>
         </div>
       </Reveal>
 
-      <Reveal delay={60}>
-        <ol className="mt-10">
+      <Reveal delay={90}>
+        <ol className="mt-12">
           {day.events.map((event, i) => (
             <EventRow
               key={event.id}
               event={event}
               last={i === day.events.length - 1}
+              dateLabel={dateLabel}
             />
           ))}
         </ol>

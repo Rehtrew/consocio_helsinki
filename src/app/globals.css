@@ -38,6 +38,14 @@
   --stack-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", sans-serif;
   --stack-display: var(--font-newsreader), ui-serif, Georgia, Cambria, serif;
+  --stack-hand: var(--font-caveat), "Segoe Script", cursive;
+
+  /* Drawn sky for the flight cards */
+  --sky-top: #93c6ee;
+  --sky-mid: #d6e8f7;
+  --sky-bot: #f1f6fa;
+  --cloud: #ffffff;
+  --sky-ink: #4d6f8c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -67,6 +75,13 @@
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-md: 0 2px 6px rgb(0 0 0 / 0.4), 0 12px 28px -8px rgb(0 0 0 / 0.5);
     --shadow-lg: 0 8px 24px -4px rgb(0 0 0 / 0.5), 0 24px 56px -16px rgb(0 0 0 / 0.6);
+
+    /* Dusk, so the card doesn't glow in a dark room */
+    --sky-top: #16344f;
+    --sky-mid: #1b2c3d;
+    --sky-bot: #171b20;
+    --cloud: #2d4a63;
+    --sky-ink: #8fb3cd;
   }
 }
 
@@ -91,6 +106,7 @@
 
   --font-sans: var(--stack-sans);
   --font-display: var(--stack-display);
+  --font-hand: var(--stack-hand);
 
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
@@ -136,6 +152,61 @@ body {
   font-weight: 400;
   letter-spacing: -0.018em;
   line-height: 1.04;
+}
+
+/* Margin notes, in the spirit of scribbling on a printed programme */
+.hand {
+  font-family: var(--stack-hand);
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  line-height: 1.15;
+  color: var(--ink-2);
+}
+
+/* --- Photos --------------------------------------------------------- */
+
+/* A print with a white border, dropped on the page slightly askew. */
+.print {
+  background: var(--surface);
+  padding: 9px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  transition: transform 320ms var(--ease-out);
+}
+
+.print img {
+  border-radius: 3px;
+  display: block;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Straighten up when you look closer */
+  .print-tilt:hover .print {
+    transform: rotate(0deg) translateY(-2px);
+  }
+}
+
+/* --- Card stack ----------------------------------------------------- */
+
+/* Two empty cards peeking out behind the real one */
+.stack::before,
+.stack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  z-index: -1;
+}
+
+.stack::before {
+  transform: rotate(-2.2deg) translateY(5px) scale(0.985);
+}
+
+.stack::after {
+  transform: rotate(1.6deg) translateY(9px) scale(0.97);
+  opacity: 0.7;
 }
 
 /* --- Pressable ------------------------------------------------------ */
@@ -342,6 +413,12 @@ body {
 
   .press:active {
     transform: none;
+  }
+
+  .print,
+  .stack::before,
+  .stack::after {
+    transform: none !important;
   }
 
   *,

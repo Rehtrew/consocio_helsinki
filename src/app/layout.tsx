@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Newsreader } from "next/font/google";
+import { Caveat, Inter, Newsreader } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -14,6 +14,13 @@ const newsreader = Newsreader({
   display: "swap",
   weight: ["400", "500"],
   style: ["normal", "italic"],
+});
+
+const caveat = Caveat({
+  variable: "--font-caveat",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -42,9 +49,10 @@ export default function RootLayout({
   return (
     // The font variables must land on :root — globals.css builds the font
     // stacks from them there.
-    // The font variables must land on :root — globals.css builds the font
-    // stacks from them there.
-    <html lang="da" className={`${inter.variable} ${newsreader.variable}`}>
+    <html
+      lang="da"
+      className={`${inter.variable} ${newsreader.variable} ${caveat.variable}`}
+    >
       <body className="antialiased">{children}</body>
     </html>
   );

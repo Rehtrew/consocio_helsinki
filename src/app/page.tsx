@@ -19,9 +19,9 @@ export default function Home() {
         <NowNext />
       </div>
 
-      <div className="mt-14">
-        <DayNav />
-      </div>
+      {/* Not wrapped in anything: a sticky element can only travel inside its
+          parent's box, and a snug wrapper would pin it to nothing. */}
+      <DayNav />
 
       <main className="mx-auto max-w-5xl px-5 pt-14">
         <Letter />

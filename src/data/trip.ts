@@ -38,6 +38,22 @@ export type EventItem = {
   anchor?: boolean;
   /** Eget billede, når stedets eget ikke rammer begivenheden */
   image?: string;
+  /** Håndskrevet note i marginen ved billedet */
+  scribble?: string;
+  /** Vises som boardingkort i stedet for en almindelig række */
+  flight?: Flight;
+};
+
+export type Flight = {
+  fromCode: string;
+  fromCity: string;
+  depart: string;
+  toCode: string;
+  toCity: string;
+  arrive: string;
+  /** Stod ikke i programmet — regnet ud fra flyvetiden */
+  arriveEstimated?: boolean;
+  duration: string;
 };
 
 export type Day = {
@@ -91,7 +107,7 @@ export const PLACES: Record<string, Place> = {
     url: "https://www.loylyhelsinki.fi/",
     image: "/places/loyly.jpg",
     blurb:
-      "Arkitekttegnet trædække ud i Østersøen med både almindelig sauna og røgsauna, og en stige direkte i havet. Vi opbevarer bagagen her.",
+      "Arkitekttegnet trædække ud i Østersøen med både almindelig sauna og røgsauna, og en stige direkte i havet.",
   },
   forenom: {
     id: "forenom",
@@ -249,17 +265,21 @@ export const DAYS: Day[] = [
       {
         id: "t-afgang",
         start: "08.20",
+        end: "11.20",
         title: "Afgang fra København",
         place: "cph",
         kind: "transport",
-      },
-      {
-        id: "t-ankomst",
-        start: "11.20",
-        title: "Ankomst Helsinki-Vantaa",
-        place: "hel",
-        kind: "transport",
-        lead: "Finsk tid er en time foran dansk. Herfra taxa ind til byen.",
+        anchor: true,
+        lead: "Finsk tid er en time foran dansk, så de tre timer på uret er to timer i luften.",
+        flight: {
+          fromCode: "CPH",
+          fromCity: "København",
+          depart: "08.20",
+          toCode: "HEL",
+          toCity: "Helsinki",
+          arrive: "11.20",
+          duration: "2t 0m",
+        },
       },
       {
         id: "t-taxa",
@@ -284,6 +304,7 @@ export const DAYS: Day[] = [
         kind: "sauna",
         anchor: true,
         lead: "To timer i sauna og Østersøen. Vi opbevarer vores bagage her.",
+        scribble: "første dyp",
         notes: ["Husk badebukser og håndklæde i håndbagagen — de skal bruges før vi tjekker ind."],
       },
       {
@@ -367,6 +388,7 @@ export const DAYS: Day[] = [
         kind: "nature",
         anchor: true,
         lead: "7–9 km: Kuusijärvi → Bisajärvi → Kuusijärvi.",
+        scribble: "her bliver vi trætte",
         notes: ["Vandresko og tøj I kan gå i. Der er ikke noget at købe undervejs."],
       },
       {
@@ -412,6 +434,7 @@ export const DAYS: Day[] = [
         kind: "food",
         anchor: true,
         lead: "Med vinmenu. Budgettets største enkeltpost: 6.000 kr.",
+        scribble: "nyd den nu",
         walk: { from: "forenom", minutes: 13 },
       },
       {
@@ -504,6 +527,7 @@ export const DAYS: Day[] = [
         place: "lazyfox",
         kind: "food",
         anchor: true,
+        scribble: "sidste måltid",
         walk: { from: "forenom", minutes: 8 },
       },
       {
@@ -529,6 +553,16 @@ export const DAYS: Day[] = [
         place: "hel",
         kind: "transport",
         anchor: true,
+        flight: {
+          fromCode: "HEL",
+          fromCity: "Helsinki",
+          depart: "15.35",
+          toCode: "CPH",
+          toCity: "København",
+          arrive: "16.35",
+          arriveEstimated: true,
+          duration: "2t 0m",
+        },
         notes: [
           "1 stk. håndbagage + 1 personlig genstand, der skal kunne ligge under sædet.",
           "Ingen indtjekket bagage.",
