@@ -16,13 +16,16 @@ export function PhotoScatter({
   photos,
   size = 72,
   overlap = 14,
+  trailing,
 }: {
   photos: TripPhoto[];
   size?: number;
   overlap?: number;
+  /** Sits at the end of the pile — the "add another" tile */
+  trailing?: React.ReactNode;
 }) {
   const store = usePhotoStore();
-  if (!store || photos.length === 0) return null;
+  if (!store || (photos.length === 0 && !trailing)) return null;
 
   return (
     <div className="flex flex-wrap items-start">
@@ -58,6 +61,15 @@ export function PhotoScatter({
           </span>
         </button>
       ))}
+
+      {trailing && (
+        <div
+          className="shrink-0"
+          style={{ marginLeft: photos.length ? 8 : 0, marginBottom: 6 }}
+        >
+          {trailing}
+        </div>
+      )}
     </div>
   );
 }
