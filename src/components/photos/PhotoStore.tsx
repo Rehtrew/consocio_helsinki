@@ -1,5 +1,6 @@
 "use client";
 
+import { Lightbox } from "./Lightbox";
 import {
   createContext,
   useCallback,
@@ -21,10 +22,13 @@ type Store = {
   enabled: boolean;
   loading: boolean;
   byEvent: Record<string, TripPhoto[]>;
+  all: TripPhoto[];
   who: string;
   setWho: (name: string) => void;
   add: (eventId: string, file: File, who: string) => Promise<void>;
   remove: (photo: TripPhoto) => Promise<void>;
+  /** Opens the shared lightbox on a set of photos */
+  open: (photos: TripPhoto[], index: number) => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -88,6 +92,10 @@ export function PhotoStoreProvider({
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [who, setWhoState] = useState("");
+  const [viewing, setViewing] = useState<{
+    photos: TripPhoto[];
+    index: number;
+  } | null>(null);
 
   useEffect(() => {
     setWhoState(localStorage.getItem(NAME_KEY) ?? "");
@@ -143,6 +151,11 @@ export function PhotoStoreProvider({
     });
   }, []);
 
+  const open = useCallback(
+    (list: TripPhoto[], index: number) => setViewing({ photos: list, index }),
+    [],
+  );
+
   const byEvent = useMemo(() => {
     const map: Record<string, TripPhoto[]> = {};
     for (const p of photos) (map[p.eventId] ??= []).push(p);
@@ -150,11 +163,43 @@ export function PhotoStoreProvider({
   }, [photos]);
 
   const value = useMemo(
-    () => ({ enabled, loading, byEvent, who, setWho, add, remove }),
-    [enabled, loading, byEvent, who, setWho, add, remove],
+    () => ({
+      enabled,
+      loading,
+      byEvent,
+      all: photos,
+      who,
+      setWho,
+      add,
+      remove,
+      open,
+    }),
+    [enabled, loading, byEvent, photos, who, setWho, add, remove, open],
   );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  // One lightbox for the whole page, wherever the photos were tapped
+  const live = viewing
+    ? viewing.photos.filter((p) => photos.some((q) => q.pathname === p.pathname))
+    : [];
+
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      {viewing && live.length > 0 && (
+        <Lightbox
+          photos={live}
+          index={Math.min(viewing.index, live.length - 1)}
+          onClose={() => setViewing(null)}
+          onMove={(index) => setViewing((v) => (v ? { ...v, index } : v))}
+          onDelete={async (photo) => {
+            if (live.length === 1) setViewing(null);
+            await remove(photo);
+          }}
+          canDelete={(photo) => photo.who === who}
+        />
+      )}
+    </Ctx.Provider>
+  );
 }
 
 export function usePhotoStore() {

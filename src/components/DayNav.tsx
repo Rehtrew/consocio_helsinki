@@ -14,6 +14,7 @@ const SECTIONS = [
   { id: "kort", label: "Kort" },
   { id: "budget", label: "Budget" },
   { id: "praktisk", label: "Praktisk" },
+  { id: "billeder", label: "Billeder" },
 ];
 
 const ALL_IDS = [...DAY_TABS.map((d) => d.id), ...SECTIONS.map((s) => s.id)];

@@ -7,6 +7,7 @@ import { Hero } from "@/components/Hero";
 import { MapSection } from "@/components/map/MapSection";
 import { NowNext } from "@/components/NowNext";
 import { Practical } from "@/components/Practical";
+import { PhotoGallery } from "@/components/photos/PhotoGallery";
 import { PhotoStoreProvider } from "@/components/photos/PhotoStore";
 import { Reveal } from "@/components/Reveal";
 
@@ -30,21 +31,25 @@ export default function Home() {
               <DaySection key={day.id} day={day} index={i} />
             ))}
           </div>
+
+          <div className="mt-20">
+            <Reveal>
+              <MapSection />
+            </Reveal>
+          </div>
+
+          <div className="mt-20">
+            <Budget />
+          </div>
+
+          <div className="mt-20">
+            <Practical />
+          </div>
+
+          <div className="mt-20">
+            <PhotoGallery />
+          </div>
         </PhotoStoreProvider>
-
-        <div className="mt-20">
-          <Reveal>
-            <MapSection />
-          </Reveal>
-        </div>
-
-        <div className="mt-20">
-          <Budget />
-        </div>
-
-        <div className="mt-20">
-          <Practical />
-        </div>
       </main>
 
       <Footer />

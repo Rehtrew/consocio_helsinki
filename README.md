@@ -54,6 +54,13 @@ Everything a photo needs is encoded in its path
 step and no migration to run. The uploader's name is asked for once and kept
 in `localStorage`.
 
+Who took a photo is picked from `CREW_NAMES` in
+[`src/data/trip.ts`](src/data/trip.ts) and remembered in `localStorage`; the
+name is stored in the path, so it shows on every photo and in the gallery at
+the bottom of the page. Note that this list is separate from `CREW` (who owes
+the group an evening), which still uses the nicknames from the original
+document.
+
 **Worth knowing:** there are no accounts. Anyone who has the site's URL can
 add a photo, and the delete button — shown only on your own photos — is an
 honour-system convenience rather than a permission check. That is a fine

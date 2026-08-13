@@ -1,16 +1,9 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { usePhotoStore, type TripPhoto } from "./PhotoStore";
-
-function clock(iso: string) {
-  return new Intl.DateTimeFormat("da-DK", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Helsinki",
-  }).format(new Date(iso));
-}
+import { useRef, useState } from "react";
+import { CREW_NAMES } from "@/data/trip";
+import { usePhotoStore } from "./PhotoStore";
+import { PhotoScatter } from "./PhotoScatter";
 
 function Camera() {
   return (
@@ -43,66 +36,55 @@ function describe(e: unknown) {
 }
 
 /** Photos the group takes at one stop. The button sits in the row of actions;
- *  the strip drops onto its own line underneath. */
+ *  the pile drops onto its own line underneath. */
 export function EventPhotos({ eventId }: { eventId: string }) {
   const store = usePhotoStore();
   const input = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<[number, number] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  const [lightbox, setLightbox] = useState<TripPhoto | null>(null);
-
-  // Hold the page still behind the lightbox, and let Escape close it
-  useEffect(() => {
-    if (!lightbox) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setLightbox(null);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [lightbox]);
 
   if (!store) return null;
 
   const photos = store.byEvent[eventId] ?? [];
   if (!store.enabled && photos.length === 0) return null;
 
+  const busy = progress !== null;
+
   const pick = () => {
     setError(null);
+    // Ask who is uploading the first time, then remember it
     if (!store.who) {
-      setDraftName("");
       setAsking(true);
       return;
     }
     input.current?.click();
   };
 
-  const confirmName = () => {
-    if (!draftName.trim()) return;
-    store.setWho(draftName.trim());
+  const chooseName = (name: string) => {
+    store.setWho(name);
     setAsking(false);
     setTimeout(() => input.current?.click(), 0);
   };
 
   const onFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    setBusy(true);
+    const list = Array.from(files).slice(0, 20);
     setError(null);
     try {
-      for (const file of Array.from(files).slice(0, 8)) {
-        await store.add(eventId, file, store.who);
+      for (let i = 0; i < list.length; i++) {
+        setProgress([i + 1, list.length]);
+        await store.add(eventId, list[i], store.who);
       }
     } catch (e) {
       setError(describe(e));
     } finally {
-      setBusy(false);
+      setProgress(null);
       if (input.current) input.current.value = "";
     }
   };
+
+  const names = [...new Set(photos.map((p) => p.who))];
 
   return (
     <>
@@ -113,10 +95,12 @@ export function EventPhotos({ eventId }: { eventId: string }) {
           className="press inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 text-[13px] font-medium text-ink-2 shadow-sm hover:bg-accent-soft hover:text-accent-ink disabled:opacity-60"
         >
           <Camera />
-          {busy
-            ? "Uploader …"
+          {progress
+            ? progress[1] > 1
+              ? `Uploader ${progress[0]} af ${progress[1]} …`
+              : "Uploader …"
             : photos.length > 0
-              ? "Upload billede"
+              ? "Upload flere"
               : "Upload billeder"}
         </button>
       )}
@@ -124,7 +108,7 @@ export function EventPhotos({ eventId }: { eventId: string }) {
       <input
         ref={input}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/*"
         multiple
         hidden
         onChange={(e) => onFiles(e.target.files)}
@@ -132,25 +116,25 @@ export function EventPhotos({ eventId }: { eventId: string }) {
 
       {/* basis-full drops these onto their own line inside the actions row */}
       {asking && (
-        <div className="flex basis-full flex-wrap items-center gap-2 pt-1">
-          <input
-            autoFocus
-            value={draftName}
-            onChange={(e) => setDraftName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") confirmName();
-              if (e.key === "Escape") setAsking(false);
-            }}
-            placeholder="Hvem er du?"
-            aria-label="Dit navn"
-            className="w-40 rounded-lg bg-surface px-3 py-2 text-[14px] shadow-sm outline-none"
-          />
-          <button
-            onClick={confirmName}
-            className="press rounded-lg bg-accent px-3 py-2 text-[13.5px] font-medium text-white shadow-sm"
-          >
-            Vælg billede
-          </button>
+        <div className="basis-full pt-2">
+          <p className="text-[13px] text-ink-3">Hvem uploader?</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {CREW_NAMES.map((name) => (
+              <button
+                key={name}
+                onClick={() => chooseName(name)}
+                className="press rounded-lg bg-surface px-3 py-2 text-[13.5px] font-medium text-ink-2 shadow-sm hover:bg-accent-soft hover:text-accent-ink"
+              >
+                {name}
+              </button>
+            ))}
+            <button
+              onClick={() => setAsking(false)}
+              className="press rounded-lg px-2.5 py-2 text-[13px] text-ink-3 hover:text-ink-2"
+            >
+              Fortryd
+            </button>
+          </div>
         </div>
       )}
 
@@ -159,75 +143,12 @@ export function EventPhotos({ eventId }: { eventId: string }) {
       )}
 
       {photos.length > 0 && (
-        <div className="basis-full pt-2">
-          <p className="text-[12.5px] text-ink-3">
-            {photos.length === 1 ? "1 billede" : `${photos.length} billeder`}{" "}
-            fra stedet
+        <div className="basis-full pt-3">
+          <PhotoScatter photos={photos} />
+          <p className="mt-1 text-[12.5px] text-ink-3">
+            {photos.length === 1 ? "1 billede" : `${photos.length} billeder`} ·{" "}
+            {names.join(", ")}
           </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {photos.map((p) => (
-              <button
-                key={p.pathname}
-                onClick={() => setLightbox(p)}
-                title={`${p.who} · ${clock(p.at)}`}
-                className="press relative h-16 w-16 overflow-hidden rounded-lg shadow-sm"
-              >
-                <Image
-                  src={p.url}
-                  alt={`Taget af ${p.who}`}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {lightbox && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setLightbox(null)}
-          className="fixed inset-0 z-[2000] grid place-items-center bg-ink/70 p-5 backdrop-blur-sm"
-        >
-          <div
-            className="max-h-full w-full max-w-2xl overflow-hidden rounded-2xl bg-surface shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lightbox.url}
-              alt={`Taget af ${lightbox.who}`}
-              className="max-h-[70vh] w-full object-contain"
-            />
-            <div className="flex items-center justify-between gap-4 p-4">
-              <p className="text-[13.5px] text-ink-2">
-                {lightbox.who} · {clock(lightbox.at)}
-              </p>
-              <div className="flex gap-2">
-                {lightbox.who === store.who && (
-                  <button
-                    onClick={async () => {
-                      const p = lightbox;
-                      setLightbox(null);
-                      await store.remove(p);
-                    }}
-                    className="press rounded-lg px-3 py-2 text-[13.5px] text-heat hover:bg-heat-soft"
-                  >
-                    Slet
-                  </button>
-                )}
-                <button
-                  onClick={() => setLightbox(null)}
-                  className="press rounded-lg bg-surface-2 px-3 py-2 text-[13.5px] font-medium text-ink-2"
-                >
-                  Luk
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </>

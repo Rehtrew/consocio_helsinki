@@ -186,6 +186,50 @@ body {
   }
 }
 
+/* --- Snapshot ------------------------------------------------------- */
+
+/* A photo dropped on the pile: thin white edge, soft shadow, slight angle. */
+.snap {
+  background: var(--surface);
+  padding: 4px;
+  border-radius: 6px;
+  box-shadow:
+    0 1px 2px rgb(26 24 21 / 0.12),
+    0 6px 14px -4px rgb(26 24 21 / 0.18);
+}
+
+.snap img {
+  border-radius: 3px;
+  display: block;
+}
+
+.snap-tilt {
+  transform: rotate(var(--tilt, 0deg));
+  transition:
+    transform 260ms var(--ease-out),
+    filter 260ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Straighten and lift the one you are looking at */
+  .snap-tilt:hover {
+    transform: rotate(0deg) translateY(-5px) scale(1.04);
+    z-index: 30;
+  }
+}
+
+.snap-tilt:active {
+  transform: rotate(var(--tilt, 0deg)) scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snap-tilt,
+  .snap-tilt:hover,
+  .snap-tilt:active {
+    transform: none;
+  }
+}
+
 /* --- Card stack ----------------------------------------------------- */
 
 /* Two empty cards peeking out behind the real one */

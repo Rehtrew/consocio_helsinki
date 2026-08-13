@@ -702,3 +702,29 @@ export const FIRST_VISIT: Record<string, string> = (() => {
   }
   return seen;
 })();
+
+/** Who can be picked as the uploader of a photo. */
+export const CREW_NAMES = ["Jacob", "Martin", "Kenneth", "Michael"];
+
+/** Where an event sits in the trip, for labelling photos in the gallery. */
+export const EVENT_LOOKUP: Record<
+  string,
+  { dayId: string; dayIndex: number; weekday: string; date: number; title: string }
+> = (() => {
+  const map: Record<
+    string,
+    { dayId: string; dayIndex: number; weekday: string; date: number; title: string }
+  > = {};
+  DAYS.forEach((day, dayIndex) => {
+    for (const e of day.events) {
+      map[e.id] = {
+        dayId: day.id,
+        dayIndex,
+        weekday: day.weekday,
+        date: Number(day.date.slice(8, 10)),
+        title: e.title,
+      };
+    }
+  });
+  return map;
+})();
