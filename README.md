@@ -42,6 +42,13 @@ token upload flow from Vercel's docs: it needs no token handshake, the server
 owns the pathname so it always matches what `GET` can parse, and there is one
 place for an upload to go wrong instead of three.
 
+**The store is private.** Photos are written with `access: "private"` and read
+back through `/api/photos/file`, which streams them out of the store. That
+keeps them off a public CDN URL, and being same-origin means `next/image`
+needs no remote-host allow-listing. `BLOB_ACCESS` in
+[`src/lib/photo-path.ts`](src/lib/photo-path.ts) is the single place to change
+if the store is ever recreated as a public one.
+
 Everything a photo needs is encoded in its path
 (`photos/<event id>/<name>--<random>.jpg`), so there is no database to keep in
 step and no migration to run. The uploader's name is asked for once and kept
