@@ -14,7 +14,8 @@ export type Place = {
   lat: number;
   lng: number;
   url?: string;
-  image?: string;
+  /** Ordered — the first one is the cover */
+  images?: string[];
   blurb?: string;
 };
 
@@ -36,8 +37,8 @@ export type EventItem = {
   owner?: { who: string; task: string; done: boolean };
   /** Fremhævet i "dagens ankre" */
   anchor?: boolean;
-  /** Eget billede, når stedets eget ikke rammer begivenheden */
-  image?: string;
+  /** Egne billeder, når stedets egne ikke rammer begivenheden */
+  images?: string[];
   /** Håndskrevet note i marginen ved billedet */
   scribble?: string;
   /** Vises som boardingkort i stedet for en almindelig række */
@@ -93,7 +94,7 @@ export const PLACES: Record<string, Place> = {
     lat: 60.160529,
     lng: 24.941343,
     url: "https://www.onigirimusubi.fi/",
-    image: "/places/onigiri.jpg",
+    images: ["/places/onigiri.jpg"],
     blurb:
       "Bittelille japansk risbolle-bar i Punavuori. Åbner 10, og det plejer at være udsolgt ved 14-tiden — så vi skal ikke komme for sent.",
   },
@@ -105,7 +106,10 @@ export const PLACES: Record<string, Place> = {
     lat: 60.152177,
     lng: 24.930444,
     url: "https://www.loylyhelsinki.fi/",
-    image: "/places/loyly.jpg",
+    images: [
+      "/places/loyly.jpg",
+      "/places/loyly-2.jpg",
+    ],
     blurb:
       "Arkitekttegnet trædække ud i Østersøen med både almindelig sauna og røgsauna, og en stige direkte i havet.",
   },
@@ -117,8 +121,8 @@ export const PLACES: Record<string, Place> = {
     lat: 60.166251,
     lng: 24.925586,
     url: "https://www.forenom.com/",
-    image: "/places/forenom.jpg",
-    blurb: "Vores base i Kamppi. Tre værelser: 2 + 2 + 1.",
+    images: ["/places/forenom.jpg"],
+    blurb: "Vores base i Kamppi, to gader fra Kampin metroasema.",
   },
   liberty: {
     id: "liberty",
@@ -128,7 +132,7 @@ export const PLACES: Record<string, Place> = {
     lat: 60.164728,
     lng: 24.944213,
     url: "https://libertyordeath.fi/",
-    image: "/places/liberty.jpg",
+    images: ["/places/liberty.jpg"],
     blurb:
       "Mørk cocktailbar i Design District med månedligt skiftende kort. Åbner 16.",
   },
@@ -140,7 +144,7 @@ export const PLACES: Record<string, Place> = {
     lat: 60.159413,
     lng: 24.936676,
     url: "https://nolita.fi/en/",
-    image: "/places/nolita.jpg",
+    images: ["/places/nolita.jpg"],
     blurb:
       "Kvarterbistro i Punavuori. Råvarestyret sæsonmad, gode vine og eget surdejsbageri.",
   },
@@ -162,7 +166,7 @@ export const PLACES: Record<string, Place> = {
     lat: 60.172742,
     lng: 24.923303,
     url: "https://www.levain.fi/",
-    image: "/places/levain.jpg",
+    images: ["/places/levain.jpg"],
     blurb:
       "Bageri og eatery. Morgenmaden inden vi tager i nationalparken — vi skal være ude af døren 10.00.",
   },
@@ -174,7 +178,10 @@ export const PLACES: Record<string, Place> = {
     lat: 60.312112,
     lng: 25.114841,
     url: "https://www.visitvantaa.fi/en/kuusijarvi/",
-    image: "/places/kuusijarvi.jpg",
+    images: [
+      "/places/kuusijarvi.jpg",
+      "/places/savusauna.jpg",
+    ],
     blurb:
       "Skovsø i udkanten af Sipoonkorpi, med café, offentlig røgsauna og trapper direkte i vandet. Start og slut på vandringen.",
   },
@@ -185,7 +192,10 @@ export const PLACES: Record<string, Place> = {
     address: "Bisajärvi, Vantaa",
     lat: 60.306393,
     lng: 25.145651,
-    image: "/places/sipoonkorpi.jpg",
+    images: [
+      "/places/sipoonkorpi.jpg",
+      "/places/sipoonkorpi-2.jpg",
+    ],
     blurb:
       "Granskov, klippeknolde og småsøer en halv time uden for byen. Bisajärvi er vendepunktet.",
   },
@@ -197,7 +207,11 @@ export const PLACES: Record<string, Place> = {
     lat: 60.171944,
     lng: 24.93147,
     url: "https://finnjavel.fi/",
-    image: "/places/finnjavel.png",
+    images: [
+      "/places/finnjavel.png",
+      "/places/finnjavel-2.jpg",
+      "/places/finnjavel-3.jpg",
+    ],
     blurb:
       "Turens dyreste og fineste måltid. Finsk køkken taget alvorligt — vi tager vinmenuen til.",
   },
@@ -209,7 +223,11 @@ export const PLACES: Record<string, Place> = {
     lat: 60.167119,
     lng: 24.958063,
     url: "https://allasseapool.fi/",
-    image: "/places/allas.jpg",
+    images: [
+      "/places/allas.jpg",
+      "/places/allas-3.jpg",
+      "/places/allas-2.jpg",
+    ],
     blurb:
       "Badeanstalt i havnen ved Kauppatori: opvarmet bassin, havvandsbassin og saunaer med udsigt til færgerne.",
   },
@@ -221,7 +239,7 @@ export const PLACES: Record<string, Place> = {
     lat: 60.168144,
     lng: 24.947721,
     url: "https://www.bardot.fi/bardot/english/",
-    image: "/places/bardot.jpg",
+    images: ["/places/bardot.jpg"],
     blurb:
       "Fransk bistro midt i byen fra Hans Välimäki. Mad, vin og cocktails — nævnt i Michelin-guiden.",
   },
@@ -233,7 +251,11 @@ export const PLACES: Record<string, Place> = {
     lat: 60.164718,
     lng: 24.932478,
     url: "https://lazyfox.fi/",
-    image: "/places/lazyfox.jpg",
+    images: [
+      "/places/lazyfox.jpg",
+      "/places/lazyfox-2.jpg",
+      "/places/lazyfox-3.jpg",
+    ],
     blurb:
       "All-day breakfast lige om hjørnet fra lejligheden. Sidste måltid inden vi skal hjem.",
   },
@@ -407,7 +429,7 @@ export const DAYS: Day[] = [
         place: "kuusijarvi",
         kind: "sauna",
         anchor: true,
-        image: "/places/savusauna.jpg",
+        images: ["/places/savusauna.jpg", "/places/kuusijarvi.jpg"],
         lead: "Rigtig røgsauna — opvarmet i timevis og luftet ud, ingen skorsten.",
         owner: { who: "Werther", task: "har styr på sauna og hvad røgsauna indebærer", done: true },
       },

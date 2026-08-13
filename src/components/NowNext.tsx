@@ -17,10 +17,10 @@ function Line({
 
   return (
     <div className="flex items-start gap-3.5">
-      {place?.image ? (
+      {place?.images?.[0] ? (
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg shadow-sm">
           <Image
-            src={place.image}
+            src={place.images[0]}
             alt=""
             fill
             sizes="48px"

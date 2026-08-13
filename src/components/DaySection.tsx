@@ -1,4 +1,3 @@
-import Image from "next/image";
 import {
   BUDGET,
   FIRST_VISIT,
@@ -7,10 +6,11 @@ import {
   type EventItem,
 } from "@/data/trip";
 import { kr, mapsSearch, walkingDirections } from "@/lib/links";
+import { DayMap } from "./DayMap";
 import { DayTile } from "./DayTile";
 import { FlightCard } from "./FlightCard";
 import { Reveal } from "./Reveal";
-import { RouteSketch } from "./RouteSketch";
+import { PhotoStack } from "./PhotoStack";
 import { Scribble } from "./Scribble";
 
 const DOT: Record<string, string> = {
@@ -66,7 +66,7 @@ function EventRow({
   // Introduce a place once. On later visits the card stays lean — no repeated
   // photo, description or website link.
   const intro = Boolean(place) && FIRST_VISIT[place!.id] === event.id;
-  const photo = event.image ?? (intro ? place?.image : undefined);
+  const photos = event.images ?? (intro ? place?.images : undefined);
   const isPin = place && place.id !== "cph" && place.id !== "hel";
 
   return (
@@ -219,7 +219,7 @@ function EventRow({
             )}
           </div>
 
-          {photo && place && (
+          {photos && photos.length > 0 && place && (
             <figure className="print-tilt shrink-0 sm:w-[262px] sm:pt-1">
               {event.scribble && (
                 <Scribble
@@ -228,26 +228,13 @@ function EventRow({
                   className="mb-1 pr-7"
                 />
               )}
-              <a
+              <PhotoStack
+                images={photos}
+                alt={place.name}
+                caption={place.name}
                 href={place.url ?? mapsSearch(place)}
-                target="_blank"
-                rel="noreferrer"
-                className="print block"
-                style={{ transform: `rotate(${tiltFor(event.id)}deg)` }}
-              >
-                <div className="relative aspect-[4/3] overflow-hidden rounded-[3px]">
-                  <Image
-                    src={photo}
-                    alt={place.name}
-                    fill
-                    sizes="(max-width: 640px) 90vw, 262px"
-                    className="object-cover"
-                  />
-                </div>
-                <figcaption className="hand pt-2 pb-0.5 text-center text-[15px] text-ink-3">
-                  {place.name}
-                </figcaption>
-              </a>
+                tilt={tiltFor(event.id)}
+              />
             </figure>
           )}
         </div>
@@ -298,7 +285,7 @@ export function DaySection({ day, index }: { day: Day; index: number }) {
           </div>
 
           <div className="max-w-[340px] lg:pt-1">
-            <RouteSketch dayId={day.id} />
+            <DayMap dayId={day.id} />
           </div>
         </div>
       </Reveal>

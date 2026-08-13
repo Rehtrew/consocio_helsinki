@@ -158,10 +158,10 @@ export default function MapCanvas({
         >
           <Popup closeButton autoPan>
             <div>
-              {p.image && (
+              {p.images?.[0] && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={p.image}
+                  src={p.images[0]}
                   alt=""
                   className="h-28 w-full object-cover"
                   loading="lazy"

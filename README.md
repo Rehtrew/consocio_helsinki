@@ -26,9 +26,9 @@ app derives from it:
 
 - Adding an event to a `DAYS` entry puts it in the timeline and in "lige nu".
 - Adding a `place` id to an event puts a numbered pin on that day's map.
-- A place's photo, description and website link are shown on the **first**
+- A place's photos, description and website link are shown on the **first**
   event that visits it (`FIRST_VISIT`), so repeat visits stay lean. Override
-  the photo per event with `image`.
+  per event with `images`. Two or more photos become a swipeable pile.
 - `anchor: true` marks the events that matter, which get a bigger title and a
   filled dot on the rail.
 
@@ -44,6 +44,10 @@ depends on a routing service at runtime. After changing or adding places:
 ```bash
 node scripts/routes.mjs
 ```
+
+Every day header also shows a small non-interactive Leaflet map of that day's
+walking, and the flight cards show the great-circle route (`src/lib/geo.ts`).
+They mount only when scrolled near, so six maps don't all fetch tiles at once.
 
 Note that the hike in Sipoonkorpi is deliberately **not** routed — road routing
 returns 13.6 km on roads instead of the 7–9 km trail loop, so the map draws a
