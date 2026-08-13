@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Helsinki 20.–23. august · Consocio
 
-## Getting Started
+An interactive version of the trip programme — timeline, maps with walking
+routes, venue links and photos, the budget, and a live "what's happening now"
+card during the trip.
 
-First, run the development server:
+Next.js 16 (App Router) + Tailwind 4 + Leaflet. Fully static, no runtime
+services, no API keys.
+
+## Running it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install && npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deploying
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Push to the repo and import it in Vercel. The framework preset is detected
+automatically; there is nothing to configure and no environment variables.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Editing the programme
 
-## Learn More
+Everything lives in [`src/data/trip.ts`](src/data/trip.ts) — days, events,
+places, budget, packing list and who owes the group an evening. The rest of the
+app derives from it:
 
-To learn more about Next.js, take a look at the following resources:
+- Adding an event to a `DAYS` entry puts it in the timeline and in "lige nu".
+- Adding a `place` id to an event puts a numbered pin on that day's map.
+- A place's photo, description and website link are shown on the **first**
+  event that visits it (`FIRST_VISIT`), so repeat visits stay lean. Override
+  the photo per event with `image`.
+- `anchor: true` marks the events that matter, which get a bigger title and a
+  filled dot on the rail.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Times are written the way they appear in the programme (`"19.30"`). They are
+Helsinki time except the two Copenhagen departures, which are listed by id in
+[`src/lib/trip-time.ts`](src/lib/trip-time.ts).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Regenerating the map routes
 
-## Deploy on Vercel
+`src/data/routes.json` holds precomputed walking geometry so the map never
+depends on a routing service at runtime. After changing or adding places:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+node scripts/routes.mjs
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Note that the hike in Sipoonkorpi is deliberately **not** routed — road routing
+returns 13.6 km on roads instead of the 7–9 km trail loop, so the map draws a
+dashed bearing line and says so.
+
+## Screenshots for review
+
+```bash
+node scripts/shots.mjs 1280 desktop light
+```
+
+Writes to `/tmp/shots`. Arguments are width, filename prefix, and
+`light`/`dark`. Requires Google Chrome installed.
+
+## Where the content came from
+
+The programme text, times and budget are from
+*«HELSINKI 20-23. AUGUST – CONSOCIO»*. Addresses and coordinates were verified
+against each venue and geocoded via OpenStreetMap. Photos come from the venues'
+own sites, MyHelsinki, and Wikimedia Commons — credits are in the site footer.

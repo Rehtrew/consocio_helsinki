@@ -1,26 +1,347 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Warm paper. Helsinki granite. A little copper for the heat. */
+  --paper: #f4f1ec;
+  --surface: #fffefb;
+  --surface-2: #faf7f2;
+  --ink: #1a1815;
+  --ink-2: #57524a;
+  --ink-3: #8b8377;
+  --line: #e2ddd4;
+  --line-strong: #d0c9bd;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --accent: #1c4e80;
+  --accent-soft: #e5ecf4;
+  --accent-ink: #14395d;
+
+  --heat: #b4552d;
+  --heat-soft: #f6e9e1;
+
+  --water: #2f7d8c;
+  --water-soft: #e2eff1;
+
+  --forest: #4a6b43;
+  --forest-soft: #e8eee5;
+
+  --shadow-sm: 0 1px 2px rgb(26 24 21 / 0.05), 0 1px 1px rgb(26 24 21 / 0.04);
+  --shadow-md:
+    0 1px 2px rgb(26 24 21 / 0.04), 0 4px 12px -2px rgb(26 24 21 / 0.07),
+    0 12px 28px -8px rgb(26 24 21 / 0.06);
+  --shadow-lg:
+    0 1px 2px rgb(26 24 21 / 0.05), 0 8px 24px -4px rgb(26 24 21 / 0.1),
+    0 24px 56px -16px rgb(26 24 21 / 0.12);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --stack-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --stack-display: var(--font-newsreader), ui-serif, Georgia, Cambria, serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #100f0e;
+    --surface: #191817;
+    --surface-2: #201f1d;
+    --ink: #eceae5;
+    --ink-2: #a8a29a;
+    --ink-3: #78726a;
+    --line: #2b2926;
+    --line-strong: #3a3733;
+
+    --accent: #7cb0e0;
+    --accent-soft: #1b2a38;
+    --accent-ink: #a8cbec;
+
+    --heat: #e08e63;
+    --heat-soft: #2f211a;
+
+    --water: #6fb8c4;
+    --water-soft: #17282b;
+
+    --forest: #96b88c;
+    --forest-soft: #1c241a;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 2px 6px rgb(0 0 0 / 0.4), 0 12px 28px -8px rgb(0 0 0 / 0.5);
+    --shadow-lg: 0 8px 24px -4px rgb(0 0 0 / 0.5), 0 24px 56px -16px rgb(0 0 0 / 0.6);
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-heat: var(--heat);
+  --color-heat-soft: var(--heat-soft);
+  --color-water: var(--water);
+  --color-water-soft: var(--water-soft);
+  --color-forest: var(--forest);
+  --color-forest-soft: var(--forest-soft);
+
+  --font-sans: var(--stack-sans);
+  --font-display: var(--stack-display);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  scroll-behavior: smooth;
+  /* clears the sticky day nav when jumping to a section */
+  scroll-padding-top: 5.5rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--stack-sans);
+  font-feature-settings: "cv05" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+/* Numerals that line up in tables and timelines */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.display {
+  font-family: var(--stack-display);
+  font-weight: 400;
+  letter-spacing: -0.018em;
+  line-height: 1.04;
+}
+
+/* --- Pressable ------------------------------------------------------ */
+
+.press {
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms var(--ease-out),
+    color 160ms ease;
+}
+
+.press:active {
+  transform: scale(0.97);
+}
+
+/* --- Focus ---------------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- Entrance ------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise {
+  animation: rise 520ms var(--ease-out) both;
+}
+
+/* Reveal on scroll. Only hide things when there is scripting to bring them
+   back — otherwise the page would be permanently blank. Browsers without the
+   `scripting` media feature skip the block, which is the safe direction. */
+@media (scripting: enabled) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 560ms var(--ease-out),
+      transform 560ms var(--ease-out);
+  }
+
+  .reveal[data-shown="true"] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- Leaflet -------------------------------------------------------- */
+
+.leaflet-container {
+  background: var(--surface-2);
+  font-family: var(--stack-sans);
+  outline: none;
+}
+
+.leaflet-container a {
+  color: var(--accent);
+}
+
+.leaflet-tile-pane {
+  /* Nudge the light tiles toward the paper tone */
+  filter: saturate(0.82) contrast(0.96);
+}
+
+@media (prefers-color-scheme: dark) {
+  .leaflet-tile-pane {
+    filter: saturate(0.7) brightness(0.92);
+  }
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: 232px !important;
+  line-height: 1.45;
+}
+
+.leaflet-popup-tip {
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.leaflet-popup-close-button {
+  color: var(--ink-3) !important;
+  padding: 8px 8px 0 0 !important;
+}
+
+.leaflet-bar,
+.leaflet-control-attribution {
+  border-radius: 10px !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-sm) !important;
+  overflow: hidden;
+}
+
+.leaflet-bar a {
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+  border-bottom-color: var(--line) !important;
+}
+
+.leaflet-bar a:hover {
+  background: var(--surface-2) !important;
+}
+
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
+  color: var(--ink-3) !important;
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+}
+
+/* Map pin */
+.pin {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1.5px solid var(--line-strong);
+  box-shadow: var(--shadow-md);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition:
+    transform 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out);
+}
+
+.pin-marker:hover .pin {
+  transform: scale(1.12);
+}
+
+.pin[data-kind="food"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.pin[data-kind="sauna"] {
+  background: var(--heat);
+  border-color: var(--heat);
+  color: #fff;
+}
+.pin[data-kind="bar"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.pin[data-kind="nature"] {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #fff;
+}
+.pin[data-kind="stay"],
+.pin[data-kind="transport"] {
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+/* --- Reduced motion ------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .rise,
+  .reveal {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    transition: opacity 200ms ease;
+  }
+
+  .press:active {
+    transform: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.12s !important;
+  }
 }
