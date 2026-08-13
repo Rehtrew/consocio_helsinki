@@ -1,5 +1,4 @@
-import { del, list } from "@vercel/blob";
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { del, list, put } from "@vercel/blob";
 import { DAYS } from "@/data/trip";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +10,15 @@ const EVENT_IDS = new Set(DAYS.flatMap((d) => d.events.map((e) => e.id)));
 const PATHNAME =
   /^photos\/([a-z0-9-]{2,40})\/([\p{L}0-9 -]{1,40})--([a-z0-9]{8})\.(jpe?g|png|webp)$/u;
 
-/* Generous: the client shrinks anything big before it gets here, so this is
-   only a backstop against someone pushing a huge file straight at the API. */
-const MAX_BYTES = 50 * 1024 * 1024;
+/** Vercel caps a serverless request body at 4.5 MB. The browser shrinks
+ *  photos well below that before sending, so this is only a guard. */
+const MAX_BYTES = 4 * 1024 * 1024;
+
+const EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 function parse(pathname: string) {
   const m = PATHNAME.exec(pathname);
@@ -26,8 +31,8 @@ function parse(pathname: string) {
 const configured = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 
 export async function GET() {
-  // Before a Blob store is connected the site still works; the photo strips
-  // just say so rather than throwing.
+  // Before a Blob store is connected the site still works; the upload
+  // buttons just stay hidden.
   if (!configured()) {
     return Response.json(
       { enabled: false, photos: [] },
@@ -50,10 +55,7 @@ export async function GET() {
         };
       })
       .filter(Boolean)
-      .sort(
-        (a, b) =>
-          new Date(a!.at).getTime() - new Date(b!.at).getTime(),
-      );
+      .sort((a, b) => new Date(a!.at).getTime() - new Date(b!.at).getTime());
 
     return Response.json(
       { enabled: true, photos },
@@ -70,36 +72,74 @@ export async function GET() {
   }
 }
 
+/** The image is already small by the time it gets here, so it travels through
+ *  this function rather than going direct with a client token — one hop, and
+ *  one place for things to go wrong. */
 export async function POST(request: Request) {
   if (!configured()) {
-    return Response.json({ error: "Blob store not configured" }, { status: 503 });
+    return Response.json(
+      { error: "Blob store not configured" },
+      { status: 503 },
+    );
   }
 
-  const body = (await request.json()) as HandleUploadBody;
-
   try {
-    const result = await handleUpload({
-      body,
-      request,
-      // No onUploadCompleted: the pathname is the record, so there is nothing
-      // to write down afterwards. Supplying one only makes Vercel call back
-      // into this route for no reason.
-      onBeforeGenerateToken: async (pathname) => {
-        if (!parse(pathname)) {
-          throw new Error(`Ugyldigt filnavn: ${pathname}`);
-        }
-        return {
-          allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
-          maximumSizeInBytes: MAX_BYTES,
-          // We generate our own random segment, so the path is already
-          // unique; allowing overwrite avoids an existence check that can
-          // only ever fail spuriously.
-          addRandomSuffix: false,
-          allowOverwrite: true,
-        };
-      },
+    const form = await request.formData();
+    const eventId = String(form.get("eventId") ?? "");
+    const who = String(form.get("who") ?? "").trim();
+    const file = form.get("file");
+
+    if (!EVENT_IDS.has(eventId)) {
+      return Response.json(
+        { error: `Ukendt punkt: ${eventId}` },
+        { status: 400 },
+      );
+    }
+    if (!(file instanceof File)) {
+      return Response.json({ error: "Manglende fil" }, { status: 400 });
+    }
+
+    const ext = EXT[file.type];
+    if (!ext) {
+      return Response.json(
+        { error: `Filtypen ${file.type || "ukendt"} kan ikke bruges` },
+        { status: 400 },
+      );
+    }
+    if (file.size > MAX_BYTES) {
+      return Response.json(
+        { error: `Billedet er for stort (${Math.round(file.size / 1024)} KB)` },
+        { status: 400 },
+      );
+    }
+
+    // The server owns the pathname, so it always matches what GET can parse.
+    const name =
+      who
+        .replace(/\s+/g, "-")
+        .replace(/[^\p{L}0-9-]/gu, "")
+        .slice(0, 40) || "anonym";
+    const rand = Math.random().toString(36).slice(2, 10).padEnd(8, "0");
+    const pathname = `photos/${eventId}/${name}--${rand}.${ext}`;
+
+    if (!parse(pathname)) {
+      return Response.json({ error: "Ugyldigt navn" }, { status: 400 });
+    }
+
+    const blob = await put(pathname, file, {
+      access: "public",
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      contentType: file.type,
     });
-    return Response.json(result);
+
+    return Response.json({
+      url: blob.url,
+      pathname,
+      eventId,
+      who: name.replace(/-/g, " "),
+      at: new Date().toISOString(),
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Upload failed";
     console.error("photo upload failed", message);
@@ -109,7 +149,10 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   if (!configured()) {
-    return Response.json({ error: "Blob store not configured" }, { status: 503 });
+    return Response.json(
+      { error: "Blob store not configured" },
+      { status: 503 },
+    );
   }
 
   const pathname = new URL(request.url).searchParams.get("pathname");

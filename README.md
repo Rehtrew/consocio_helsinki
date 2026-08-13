@@ -31,15 +31,21 @@ buttons simply don't appear.
    copy by hand.
 3. For local development, pull it down with `vercel env pull .env.local`.
 
-Photos are shrunk to a 2400px long edge in the browser before they are sent,
-so a 10 MB phone shot goes up as a few hundred KB. Anything under 1.5 MB is
-left alone, which keeps small PNG screenshots lossless.
+The browser shrinks each photo to a 2400px long edge before sending — a
+10 MB phone shot becomes a few hundred KB — and tries a harder pass if the
+first is still too big. Anything already under 1 MB is left alone so small
+PNGs keep their transparency.
+
+Because the image is small by then, it is posted to `/api/photos` as a normal
+form and written to Blob server-side. That is deliberately *not* the client-
+token upload flow from Vercel's docs: it needs no token handshake, the server
+owns the pathname so it always matches what `GET` can parse, and there is one
+place for an upload to go wrong instead of three.
 
 Everything a photo needs is encoded in its path
 (`photos/<event id>/<name>--<random>.jpg`), so there is no database to keep in
-step and no migration to run. `GET /api/photos` lists them, uploads go
-straight from the phone to Blob via a short-lived token, and the name is asked
-for once and kept in `localStorage`.
+step and no migration to run. The uploader's name is asked for once and kept
+in `localStorage`.
 
 **Worth knowing:** there are no accounts. Anyone who has the site's URL can
 add a photo, and the delete button — shown only on your own photos — is an

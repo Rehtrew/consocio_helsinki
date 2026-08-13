@@ -1,6 +1,5 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
 import {
   createContext,
   useCallback,
@@ -32,62 +31,52 @@ const Ctx = createContext<Store | null>(null);
 
 const NAME_KEY = "consocio:navn";
 
-/** Pathname doubles as the record, so the name has to survive a round trip
- *  through it: letters, digits, and spaces stored as hyphens. */
-function slug(name: string) {
-  return name
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^\p{L}0-9-]/gu, "")
-    .slice(0, 40);
+/** Two passes: a normal one, then a harder one if the first is still too big
+ *  for a serverless request body. Anything already small goes up untouched so
+ *  small PNGs keep their transparency. */
+const PASSES = [
+  { edge: 2400, quality: 0.85 },
+  { edge: 1600, quality: 0.78 },
+];
+const LEAVE_ALONE_UNDER = 1_000_000;
+const BODY_LIMIT = 3_800_000;
+
+async function shrink(file: File, edge: number, quality: number) {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, edge / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close?.();
+  return new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", quality),
+  );
 }
 
+/** Phone photos are several megabytes. Shrinking them in the browser makes
+ *  the upload quick on hotel wifi and keeps the Blob store small. */
+async function prepare(file: File): Promise<File> {
+  const known = ["image/jpeg", "image/png", "image/webp"].includes(file.type);
+  if (known && file.size <= LEAVE_ALONE_UNDER) return file;
 
-const MAX_EDGE = 2400;
-/** Anything under this goes up untouched — no point re-encoding a small
- *  screenshot and losing its transparency. */
-const REENCODE_ABOVE = 1_500_000;
-
-/** Phone photos are several megabytes and go up over hotel wifi. Shrinking
- *  the long edge first makes the upload quick, keeps the Blob store small,
- *  and sidesteps the server's size ceiling entirely. */
-async function prepare(file: File): Promise<{ data: Blob; ext: string }> {
-  const passthrough = () => ({
-    data: file as Blob,
-    ext:
-      file.type === "image/png"
-        ? "png"
-        : file.type === "image/webp"
-          ? "webp"
-          : "jpg",
-  });
-
-  if (file.size <= REENCODE_ABOVE || typeof createImageBitmap !== "function") {
-    return passthrough();
+  if (typeof createImageBitmap === "function") {
+    for (const { edge, quality } of PASSES) {
+      try {
+        const blob = await shrink(file, edge, quality);
+        if (blob && blob.size <= BODY_LIMIT) {
+          return new File([blob], "foto.jpg", { type: "image/jpeg" });
+        }
+      } catch {
+        break;
+      }
+    }
   }
 
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-    const w = Math.round(bitmap.width * scale);
-    const h = Math.round(bitmap.height * scale);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return passthrough();
-    ctx.drawImage(bitmap, 0, 0, w, h);
-    bitmap.close?.();
-
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.85),
-    );
-    if (!blob || blob.size >= file.size) return passthrough();
-    return { data: blob, ext: "jpg" };
-  } catch {
-    return passthrough();
-  }
+  if (known && file.size <= BODY_LIMIT) return file;
+  throw new Error("Billedet er for stort til at blive uploadet");
 }
 
 export function PhotoStoreProvider({
@@ -127,26 +116,18 @@ export function PhotoStoreProvider({
 
   const add = useCallback(
     async (eventId: string, file: File, name: string) => {
-      const { data, ext } = await prepare(file);
-      const rand = Math.random().toString(36).slice(2, 10);
-      const pathname = `photos/${eventId}/${slug(name) || "anonym"}--${rand}.${ext}`;
+      const prepared = await prepare(file);
 
-      const blob = await upload(pathname, data, {
-        access: "public",
-        handleUploadUrl: "/api/photos",
-        contentType: data.type || file.type,
-      });
+      const form = new FormData();
+      form.set("eventId", eventId);
+      form.set("who", name);
+      form.set("file", prepared);
 
-      setPhotos((prev) => [
-        ...prev,
-        {
-          url: blob.url,
-          pathname,
-          eventId,
-          who: (slug(name) || "anonym").replace(/-/g, " "),
-          at: new Date().toISOString(),
-        },
-      ]);
+      const res = await fetch("/api/photos", { method: "POST", body: form });
+      const saved = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(saved.error ?? `Upload fejlede (${res.status})`);
+
+      setPhotos((prev) => [...prev, saved as TripPhoto]);
     },
     [],
   );
