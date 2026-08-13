@@ -57,9 +57,12 @@ export async function GET() {
       { enabled: true, photos },
       { headers: { "cache-control": "no-store" } },
     );
-  } catch {
+  } catch (e) {
+    // The token is there, so uploading should still work — don't hide the UI
+    // just because listing failed.
+    console.error("photo list failed", e);
     return Response.json(
-      { enabled: false, photos: [] },
+      { enabled: true, photos: [] },
       { headers: { "cache-control": "no-store" } },
     );
   }

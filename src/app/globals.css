@@ -341,19 +341,6 @@ body {
 }
 
 /* Map pin */
-.pin-sm {
-  width: 20px;
-  height: 20px;
-  font-size: 10px;
-  border-width: 1.25px;
-}
-
-.pin-text {
-  width: auto;
-  padding: 0 7px;
-  letter-spacing: 0.01em;
-}
-
 .pin {
   display: grid;
   place-items: center;
@@ -370,6 +357,26 @@ body {
   transition:
     transform 180ms var(--ease-out),
     box-shadow 180ms var(--ease-out);
+}
+
+/* Modifiers must follow .pin — same specificity, so source order decides.
+   Declared before it, the base width silently won and the airport codes
+   spilled out of the circle. */
+.pin-sm {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  border-width: 1.25px;
+}
+
+/* Airport codes need a lozenge, not a circle */
+.pin-text {
+  width: auto;
+  min-width: 0;
+  padding: 0 7px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .pin-marker:active .pin {

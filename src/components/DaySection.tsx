@@ -185,7 +185,7 @@ function EventRow({
               </p>
             )}
 
-            {(event.walk || isPin) && (
+            {(event.walk || isPin || place) && (
               <div className="mt-3.5 flex flex-wrap items-center gap-2">
                 {event.walk && (
                   <span className="rounded-lg bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink-2">
@@ -216,10 +216,9 @@ function EventRow({
                     <ArrowOut />
                   </a>
                 )}
+                {place && <EventPhotos eventId={event.id} />}
               </div>
             )}
-
-            {place && <EventPhotos eventId={event.id} />}
           </div>
 
           {photos && photos.length > 0 && place && (

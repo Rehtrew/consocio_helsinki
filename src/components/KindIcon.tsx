@@ -18,13 +18,8 @@ function Glyph({ kind }: { kind: string }) {
   };
 
   switch (kind) {
-    case "transport": // aeroplane, filled — a stroked one reads as scribble
-      return (
-        <path
-          d="M21.6 11.1 15 9.4l-3.5-6.1a1 1 0 0 0-1.8.1l-1.1 3 2 3.6-3.2-.8-1.5-2.2-1.3.4.9 2.6-.9 2.6 1.3.4 1.5-2.2 3.2-.8-2 3.6 1.1 3a1 1 0 0 0 1.8.1L15 10.4l6.6-1.7Z"
-          fill="currentColor"
-        />
-      );
+    case "transport": // airliner from above — the side view read as a bird
+      return <path d="M12 2.2c.85 0 1.5.72 1.5 1.6v4.9l7.5 4.35v1.9l-7.5-2.25v4.55l2.35 1.65v1.6L12 19.55l-3.85 1-.05-1.6 2.4-1.65V12.7L3 14.95v-1.9l7.5-4.35V3.8c0-.88.65-1.6 1.5-1.6Z" fill="currentColor" />;
     case "food": // fork and knife
       return (
         <>

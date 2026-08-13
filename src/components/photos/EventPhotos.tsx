@@ -12,21 +12,28 @@ function clock(iso: string) {
   }).format(new Date(iso));
 }
 
-function Plus() {
+function Camera() {
   return (
-    <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
+    <svg width="15" height="15" viewBox="0 0 20 20" aria-hidden fill="none">
       <path
-        d="M8 3.5v9M3.5 8h9"
+        d="M2.5 6.5h3l1.3-2h6.4l1.3 2h3v9h-15v-9Z"
         stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="10"
+        cy="10.5"
+        r="2.9"
+        stroke="currentColor"
+        strokeWidth="1.4"
       />
     </svg>
   );
 }
 
-/** The strip of photos taken at one stop. Empty until somebody adds the
- *  first one, so days you haven't lived yet stay quiet. */
+/** Photos the group takes at one stop. The button sits in the row of actions;
+ *  the strip drops onto its own line underneath. */
 export function EventPhotos({ eventId }: { eventId: string }) {
   const store = usePhotoStore();
   const input = useRef<HTMLInputElement>(null);
@@ -52,8 +59,6 @@ export function EventPhotos({ eventId }: { eventId: string }) {
   if (!store) return null;
 
   const photos = store.byEvent[eventId] ?? [];
-
-  // Nothing to show and nowhere to put anything
   if (!store.enabled && photos.length === 0) return null;
 
   const pick = () => {
@@ -66,18 +71,25 @@ export function EventPhotos({ eventId }: { eventId: string }) {
     input.current?.click();
   };
 
+  const confirmName = () => {
+    if (!draftName.trim()) return;
+    store.setWho(draftName.trim());
+    setAsking(false);
+    setTimeout(() => input.current?.click(), 0);
+  };
+
   const onFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setBusy(true);
     setError(null);
     try {
-      for (const file of Array.from(files).slice(0, 6)) {
+      for (const file of Array.from(files).slice(0, 8)) {
         await store.add(eventId, file, store.who);
       }
     } catch (e) {
       setError(
-        e instanceof Error && /configured/i.test(e.message)
-          ? "Billeder er ikke slået til endnu."
+        e instanceof Error && /configured|503/i.test(e.message)
+          ? "Billed-uploads er ikke slået til endnu."
           : "Kunne ikke uploade. Prøv igen.",
       );
     } finally {
@@ -87,98 +99,83 @@ export function EventPhotos({ eventId }: { eventId: string }) {
   };
 
   return (
-    <div className="mt-4">
-      <div className="flex flex-wrap items-center gap-2">
-        {photos.map((p) => (
-          <button
-            key={p.pathname}
-            onClick={() => setLightbox(p)}
-            title={`${p.who} · ${clock(p.at)}`}
-            className="press relative h-16 w-16 overflow-hidden rounded-lg shadow-sm"
-          >
-            <Image
-              src={p.url}
-              alt={`Taget af ${p.who}`}
-              fill
-              sizes="64px"
-              className="object-cover"
-            />
-          </button>
-        ))}
-
-        {store.enabled &&
-          (photos.length === 0 ? (
-            // Quiet until the first photo lands, so empty days stay calm
-            <button
-              onClick={pick}
-              disabled={busy}
-              className="press -ml-1 flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-[13px] text-ink-3 hover:text-accent disabled:opacity-60"
-            >
-              <Plus />
-              {busy ? "Uploader …" : "Tilføj billede"}
-            </button>
-          ) : (
-            <button
-              onClick={pick}
-              disabled={busy}
-              className="press flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line-strong text-[12px] text-ink-3 hover:border-accent hover:text-accent disabled:opacity-60"
-            >
-              <Plus />
-              {busy ? "…" : "Tilføj"}
-            </button>
-          ))}
-
-        <input
-          ref={input}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          hidden
-          onChange={(e) => onFiles(e.target.files)}
-        />
-      </div>
-
-      {photos.length > 0 && (
-        <p className="mt-2 text-[12.5px] text-ink-3">
-          {photos
-            .map((p) => `${p.who} ${clock(p.at)}`)
-            .slice(0, 4)
-            .join(" · ")}
-          {photos.length > 4 ? ` · +${photos.length - 4}` : ""}
-        </p>
+    <>
+      {store.enabled && (
+        <button
+          onClick={pick}
+          disabled={busy}
+          className="press inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 text-[13px] font-medium text-ink-2 shadow-sm hover:bg-accent-soft hover:text-accent-ink disabled:opacity-60"
+        >
+          <Camera />
+          {busy
+            ? "Uploader …"
+            : photos.length > 0
+              ? "Tilføj billede"
+              : "Tilføj jeres billeder"}
+        </button>
       )}
 
-      {error && <p className="mt-2 text-[12.5px] text-heat">{error}</p>}
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        hidden
+        onChange={(e) => onFiles(e.target.files)}
+      />
 
-      {/* Ask once who is adding, then remember it */}
+      {/* basis-full drops these onto their own line inside the actions row */}
       {asking && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="flex basis-full flex-wrap items-center gap-2 pt-1">
           <input
             autoFocus
             value={draftName}
             onChange={(e) => setDraftName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && draftName.trim()) {
-                store.setWho(draftName.trim());
-                setAsking(false);
-                setTimeout(() => input.current?.click(), 0);
-              }
+              if (e.key === "Enter") confirmName();
               if (e.key === "Escape") setAsking(false);
             }}
             placeholder="Hvem er du?"
-            className="rounded-lg bg-surface px-3 py-2 text-[14px] shadow-sm outline-none"
+            aria-label="Dit navn"
+            className="w-40 rounded-lg bg-surface px-3 py-2 text-[14px] shadow-sm outline-none"
           />
           <button
-            onClick={() => {
-              if (!draftName.trim()) return;
-              store.setWho(draftName.trim());
-              setAsking(false);
-              setTimeout(() => input.current?.click(), 0);
-            }}
+            onClick={confirmName}
             className="press rounded-lg bg-accent px-3 py-2 text-[13.5px] font-medium text-white shadow-sm"
           >
-            Fortsæt
+            Vælg billede
           </button>
+        </div>
+      )}
+
+      {error && (
+        <p className="basis-full pt-1 text-[12.5px] text-heat">{error}</p>
+      )}
+
+      {photos.length > 0 && (
+        <div className="basis-full pt-2">
+          <p className="text-[12.5px] text-ink-3">
+            {photos.length === 1 ? "1 billede" : `${photos.length} billeder`}{" "}
+            fra stedet
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {photos.map((p) => (
+              <button
+                key={p.pathname}
+                onClick={() => setLightbox(p)}
+                title={`${p.who} · ${clock(p.at)}`}
+                className="press relative h-16 w-16 overflow-hidden rounded-lg shadow-sm"
+              >
+                <Image
+                  src={p.url}
+                  alt={`Taget af ${p.who}`}
+                  fill
+                  sizes="64px"
+                  className="object-cover"
+                />
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -227,6 +224,6 @@ export function EventPhotos({ eventId }: { eventId: string }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
