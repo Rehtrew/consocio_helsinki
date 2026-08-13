@@ -21,10 +21,11 @@ export function parsePhotoPath(pathname: string) {
   return { eventId, who: name.replace(/-/g, " ") };
 }
 
-/** Same-origin, so next/image needs no remote host allow-listing, and the
- *  URL is stable — the random segment makes each path immutable. */
+/** Same-origin, so next/image needs no remote host allow-listing. No query
+ *  string either: the optimiser rejects local sources that have one. */
 export function photoSrc(pathname: string) {
-  return `/api/photos/file?p=${encodeURIComponent(pathname)}`;
+  const [, event, name] = pathname.split("/");
+  return `/photo/${encodeURIComponent(event)}/${encodeURIComponent(name)}`;
 }
 
 export const configured = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);

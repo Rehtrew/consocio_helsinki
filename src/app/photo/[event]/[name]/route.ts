@@ -3,13 +3,21 @@ import { BLOB_ACCESS, configured, parsePhotoPath } from "@/lib/photo-path";
 
 export const dynamic = "force-dynamic";
 
-/** Streams one photo out of the private store. Paths carry a random segment
- *  and are never rewritten, so the bytes can be cached hard. */
-export async function GET(request: Request) {
+/** Streams one photo out of the private store.
+ *
+ *  The path carries the identity rather than a query string: next/image
+ *  refuses to optimise a local source that has a search part, and a bare
+ *  path is nicer to cache anyway. Paths include a random segment and are
+ *  never rewritten, so the bytes can be cached hard. */
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ event: string; name: string }> },
+) {
   if (!configured()) return new Response("Not found", { status: 404 });
 
-  const pathname = new URL(request.url).searchParams.get("p");
-  if (!pathname || !parsePhotoPath(pathname)) {
+  const { event, name } = await params;
+  const pathname = `photos/${decodeURIComponent(event)}/${decodeURIComponent(name)}`;
+  if (!parsePhotoPath(pathname)) {
     return new Response("Not found", { status: 404 });
   }
 
@@ -21,8 +29,7 @@ export async function GET(request: Request) {
 
     return new Response(result.stream, {
       headers: {
-        "content-type":
-          result.headers.get("content-type") ?? "image/jpeg",
+        "content-type": result.headers.get("content-type") ?? "image/jpeg",
         "cache-control": "public, max-age=31536000, immutable",
       },
     });
