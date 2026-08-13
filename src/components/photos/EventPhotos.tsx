@@ -5,48 +5,23 @@ import { CREW_NAMES } from "@/data/trip";
 import { usePhotoStore } from "./PhotoStore";
 import { PhotoScatter } from "./PhotoScatter";
 
-function Upload() {
+function Camera() {
   return (
     <svg width="15" height="15" viewBox="0 0 20 20" aria-hidden fill="none">
       <path
-        d="M10 13.5V3.8M6.4 7.2 10 3.6l3.6 3.6"
+        d="M2.5 6.5h3l1.3-2h6.4l1.3 2h3v9h-15v-9Z"
         stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
+        strokeWidth="1.4"
         strokeLinejoin="round"
       />
-      <path
-        d="M3.5 12.5v2.6a1.4 1.4 0 0 0 1.4 1.4h10.2a1.4 1.4 0 0 0 1.4-1.4v-2.6"
+      <circle
+        cx="10"
+        cy="10.5"
+        r="2.9"
         stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
+        strokeWidth="1.4"
       />
     </svg>
-  );
-}
-
-/** Three little cards, as a hint of what belongs here. */
-function StackHint() {
-  return (
-    <span aria-hidden className="relative block h-9 w-10 shrink-0 sm:h-10 sm:w-11">
-      {[
-        { r: -15, x: 0, bg: "var(--accent-soft)" },
-        { r: 8, x: 7, bg: "var(--heat-soft)" },
-        { r: -3, x: 3, bg: "var(--surface)" },
-      ].map((c, i) => (
-        <span
-          key={i}
-          className="absolute top-0.5 h-8 w-7 rounded-[5px] shadow-sm sm:h-9 sm:w-8"
-          style={{
-            left: c.x,
-            transform: `rotate(${c.r}deg)`,
-            background: c.bg,
-            border: "1px solid var(--line)",
-            zIndex: i,
-          }}
-        />
-      ))}
-    </span>
   );
 }
 
@@ -60,19 +35,14 @@ function describe(e: unknown) {
   return `Kunne ikke uploade: ${raw}`;
 }
 
-/** Photos the group takes at one stop.
- *
- *  Two states: an invitation while the stop is empty, and once there are
- *  photos the pile itself carries the weight and adding more shrinks to a
- *  tile at the end of it. */
+/** Photos the group takes at one stop. The button sits in the row of actions;
+ *  the pile drops onto its own line underneath. */
 export function EventPhotos({ eventId }: { eventId: string }) {
   const store = usePhotoStore();
   const input = useRef<HTMLInputElement>(null);
-  const pending = useRef<File[] | null>(null);
   const [progress, setProgress] = useState<[number, number] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
-  const [dragging, setDragging] = useState(false);
 
   if (!store) return null;
 
@@ -81,9 +51,25 @@ export function EventPhotos({ eventId }: { eventId: string }) {
 
   const busy = progress !== null;
 
-  const send = async (files: File[]) => {
-    const list = files.filter((f) => f.type.startsWith("image/")).slice(0, 20);
-    if (list.length === 0) return;
+  const pick = () => {
+    setError(null);
+    // Ask who is uploading the first time, then remember it
+    if (!store.who) {
+      setAsking(true);
+      return;
+    }
+    input.current?.click();
+  };
+
+  const chooseName = (name: string) => {
+    store.setWho(name);
+    setAsking(false);
+    setTimeout(() => input.current?.click(), 0);
+  };
+
+  const onFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files).slice(0, 20);
     setError(null);
     try {
       for (let i = 0; i < list.length; i++) {
@@ -98,137 +84,39 @@ export function EventPhotos({ eventId }: { eventId: string }) {
     }
   };
 
-  /** Ask who is uploading the first time, holding on to any dropped files. */
-  const withName = (files: File[] | null) => {
-    if (!store.who) {
-      pending.current = files;
-      setAsking(true);
-      return false;
-    }
-    return true;
-  };
-
-  const pick = () => {
-    setError(null);
-    if (!withName(null)) return;
-    input.current?.click();
-  };
-
-  const chooseName = (name: string) => {
-    store.setWho(name);
-    setAsking(false);
-    const held = pending.current;
-    pending.current = null;
-    if (held && held.length > 0) void send(held);
-    else setTimeout(() => input.current?.click(), 0);
-  };
-
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length === 0) return;
-    setError(null);
-    if (!withName(files)) return;
-    void send(files);
-  };
-
-  const dropProps = {
-    onDragOver: (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragging(true);
-    },
-    onDragLeave: () => setDragging(false),
-    onDrop,
-  };
-
-  const label = progress
-    ? progress[1] > 1
-      ? `Uploader ${progress[0]} af ${progress[1]} …`
-      : "Uploader …"
-    : "Upload";
-
   const names = [...new Set(photos.map((p) => p.who))];
 
   return (
-    <div className="basis-full pt-1">
+    <>
+      {store.enabled && (
+        <button
+          onClick={pick}
+          disabled={busy}
+          className="press inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 text-[13px] font-medium text-ink-2 shadow-sm hover:bg-accent-soft hover:text-accent-ink disabled:opacity-60"
+        >
+          <Camera />
+          {progress
+            ? progress[1] > 1
+              ? `Uploader ${progress[0]} af ${progress[1]} …`
+              : "Uploader …"
+            : photos.length > 0
+              ? "Upload flere"
+              : "Upload billeder"}
+        </button>
+      )}
+
       <input
         ref={input}
         type="file"
         accept="image/*"
         multiple
         hidden
-        onChange={(e) => void send(Array.from(e.target.files ?? []))}
+        onChange={(e) => onFiles(e.target.files)}
       />
 
-      {photos.length === 0 ? (
-        // Nothing here yet — ask for photos properly. The whole strip is the
-        // control, so the tap target on a phone is the full width of it.
-        <button
-          type="button"
-          onClick={pick}
-          disabled={busy}
-          {...dropProps}
-          className="press flex w-full max-w-xl items-center gap-3 rounded-xl border border-dashed p-2.5 text-left transition-colors duration-200 disabled:opacity-60 sm:gap-4 sm:p-3.5"
-          style={{
-            borderColor: dragging ? "var(--accent)" : "var(--line-strong)",
-            background: dragging ? "var(--accent-soft)" : "transparent",
-          }}
-        >
-          <StackHint />
-
-          <span className="min-w-0 flex-1">
-            <span className="block text-[14px] leading-tight font-medium">
-              {busy ? label : "Upload billeder"}
-            </span>
-            {/* The hint only earns its space where there is room for one line */}
-            <span className="mt-0.5 hidden text-[12.5px] leading-snug text-ink-3 sm:block">
-              Træk dem ind, eller vælg — vi gør dem mindre automatisk
-            </span>
-          </span>
-
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-2.5 py-2 text-[13.5px] font-medium text-white shadow-sm sm:px-3">
-            <Upload />
-            <span className="hidden sm:inline">Upload</span>
-          </span>
-        </button>
-      ) : (
-        // The pile speaks for itself; adding more is a tile at the end of it
-        <div {...dropProps} className="rounded-xl">
-          <PhotoScatter
-            photos={photos}
-            trailing={
-              store.enabled ? (
-                <button
-                  onClick={pick}
-                  disabled={busy}
-                  aria-label="Upload flere billeder"
-                  className="press grid h-[80px] w-[72px] place-items-center rounded-[6px] border border-dashed text-ink-3 transition-colors duration-200 hover:border-accent hover:text-accent disabled:opacity-60"
-                  style={{
-                    borderColor: dragging ? "var(--accent)" : "var(--line-strong)",
-                    background: dragging ? "var(--accent-soft)" : "transparent",
-                  }}
-                >
-                  <span className="flex flex-col items-center gap-1">
-                    <Upload />
-                    <span className="text-[11.5px] leading-none">
-                      {busy ? "…" : "Tilføj"}
-                    </span>
-                  </span>
-                </button>
-              ) : null
-            }
-          />
-          <p className="mt-1 text-[12.5px] text-ink-3">
-            {progress
-              ? label
-              : `${photos.length === 1 ? "1 billede" : `${photos.length} billeder`} · ${names.join(", ")}`}
-          </p>
-        </div>
-      )}
-
+      {/* basis-full drops these onto their own line inside the actions row */}
       {asking && (
-        <div className="pt-3">
+        <div className="basis-full pt-2">
           <p className="text-[13px] text-ink-3">Hvem uploader?</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {CREW_NAMES.map((name) => (
@@ -241,10 +129,7 @@ export function EventPhotos({ eventId }: { eventId: string }) {
               </button>
             ))}
             <button
-              onClick={() => {
-                pending.current = null;
-                setAsking(false);
-              }}
+              onClick={() => setAsking(false)}
               className="press rounded-lg px-2.5 py-2 text-[13px] text-ink-3 hover:text-ink-2"
             >
               Fortryd
@@ -253,7 +138,19 @@ export function EventPhotos({ eventId }: { eventId: string }) {
         </div>
       )}
 
-      {error && <p className="pt-2 text-[12.5px] text-heat">{error}</p>}
-    </div>
+      {error && (
+        <p className="basis-full pt-1 text-[12.5px] text-heat">{error}</p>
+      )}
+
+      {photos.length > 0 && (
+        <div className="basis-full pt-3">
+          <PhotoScatter photos={photos} />
+          <p className="mt-1 text-[12.5px] text-ink-3">
+            {photos.length === 1 ? "1 billede" : `${photos.length} billeder`} ·{" "}
+            {names.join(", ")}
+          </p>
+        </div>
+      )}
+    </>
   );
 }
