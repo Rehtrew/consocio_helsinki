@@ -32,6 +32,19 @@ function Camera() {
   );
 }
 
+/** The SDK's own wording is opaque when our route is the one refusing, so
+ *  translate the two cases we can cause ourselves and pass everything else
+ *  through verbatim — a real message beats a tidy but useless one. */
+function describe(raw: string) {
+  if (/configured|503/i.test(raw)) {
+    return "Billed-uploads er ikke slået til endnu.";
+  }
+  if (/retrieve the client token/i.test(raw)) {
+    return "Kunne ikke få lov til at uploade. Er Blob-storet forbundet til projektet og deployet siden?";
+  }
+  return `Kunne ikke uploade: ${raw}`;
+}
+
 /** Photos the group takes at one stop. The button sits in the row of actions;
  *  the strip drops onto its own line underneath. */
 export function EventPhotos({ eventId }: { eventId: string }) {
@@ -87,11 +100,8 @@ export function EventPhotos({ eventId }: { eventId: string }) {
         await store.add(eventId, file, store.who);
       }
     } catch (e) {
-      setError(
-        e instanceof Error && /configured|503/i.test(e.message)
-          ? "Billed-uploads er ikke slået til endnu."
-          : "Kunne ikke uploade. Prøv igen.",
-      );
+      const raw = e instanceof Error ? e.message : String(e);
+      setError(describe(raw));
     } finally {
       setBusy(false);
       if (input.current) input.current.value = "";
@@ -110,8 +120,8 @@ export function EventPhotos({ eventId }: { eventId: string }) {
           {busy
             ? "Uploader …"
             : photos.length > 0
-              ? "Tilføj billede"
-              : "Tilføj jeres billeder"}
+              ? "Upload billede"
+              : "Upload billeder"}
         </button>
       )}
 

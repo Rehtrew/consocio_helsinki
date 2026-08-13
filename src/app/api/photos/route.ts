@@ -11,7 +11,9 @@ const EVENT_IDS = new Set(DAYS.flatMap((d) => d.events.map((e) => e.id)));
 const PATHNAME =
   /^photos\/([a-z0-9-]{2,40})\/([\p{L}0-9 -]{1,40})--([a-z0-9]{8})\.(jpe?g|png|webp)$/u;
 
-const MAX_BYTES = 12 * 1024 * 1024;
+/* Generous: the client shrinks anything big before it gets here, so this is
+   only a backstop against someone pushing a huge file straight at the API. */
+const MAX_BYTES = 50 * 1024 * 1024;
 
 function parse(pathname: string) {
   const m = PATHNAME.exec(pathname);
@@ -79,28 +81,29 @@ export async function POST(request: Request) {
     const result = await handleUpload({
       body,
       request,
+      // No onUploadCompleted: the pathname is the record, so there is nothing
+      // to write down afterwards. Supplying one only makes Vercel call back
+      // into this route for no reason.
       onBeforeGenerateToken: async (pathname) => {
-        if (!parse(pathname)) throw new Error("Bad pathname");
+        if (!parse(pathname)) {
+          throw new Error(`Ugyldigt filnavn: ${pathname}`);
+        }
         return {
-          allowedContentTypes: [
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-          ],
+          allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
           maximumSizeInBytes: MAX_BYTES,
+          // We generate our own random segment, so the path is already
+          // unique; allowing overwrite avoids an existence check that can
+          // only ever fail spuriously.
           addRandomSuffix: false,
+          allowOverwrite: true,
         };
-      },
-      onUploadCompleted: async () => {
-        // Nothing to record — the pathname is the record.
       },
     });
     return Response.json(result);
   } catch (e) {
-    return Response.json(
-      { error: e instanceof Error ? e.message : "Upload failed" },
-      { status: 400 },
-    );
+    const message = e instanceof Error ? e.message : "Upload failed";
+    console.error("photo upload failed", message);
+    return Response.json({ error: message }, { status: 400 });
   }
 }
 

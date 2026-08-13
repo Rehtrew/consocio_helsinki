@@ -31,6 +31,10 @@ buttons simply don't appear.
    copy by hand.
 3. For local development, pull it down with `vercel env pull .env.local`.
 
+Photos are shrunk to a 2400px long edge in the browser before they are sent,
+so a 10 MB phone shot goes up as a few hundred KB. Anything under 1.5 MB is
+left alone, which keeps small PNG screenshots lossless.
+
 Everything a photo needs is encoded in its path
 (`photos/<event id>/<name>--<random>.jpg`), so there is no database to keep in
 step and no migration to run. `GET /api/photos` lists them, uploads go

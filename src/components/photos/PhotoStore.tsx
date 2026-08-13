@@ -42,6 +42,54 @@ function slug(name: string) {
     .slice(0, 40);
 }
 
+
+const MAX_EDGE = 2400;
+/** Anything under this goes up untouched — no point re-encoding a small
+ *  screenshot and losing its transparency. */
+const REENCODE_ABOVE = 1_500_000;
+
+/** Phone photos are several megabytes and go up over hotel wifi. Shrinking
+ *  the long edge first makes the upload quick, keeps the Blob store small,
+ *  and sidesteps the server's size ceiling entirely. */
+async function prepare(file: File): Promise<{ data: Blob; ext: string }> {
+  const passthrough = () => ({
+    data: file as Blob,
+    ext:
+      file.type === "image/png"
+        ? "png"
+        : file.type === "image/webp"
+          ? "webp"
+          : "jpg",
+  });
+
+  if (file.size <= REENCODE_ABOVE || typeof createImageBitmap !== "function") {
+    return passthrough();
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return passthrough();
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.85),
+    );
+    if (!blob || blob.size >= file.size) return passthrough();
+    return { data: blob, ext: "jpg" };
+  } catch {
+    return passthrough();
+  }
+}
+
 export function PhotoStoreProvider({
   children,
 }: {
@@ -79,19 +127,14 @@ export function PhotoStoreProvider({
 
   const add = useCallback(
     async (eventId: string, file: File, name: string) => {
-      const ext =
-        file.type === "image/png"
-          ? "png"
-          : file.type === "image/webp"
-            ? "webp"
-            : "jpg";
+      const { data, ext } = await prepare(file);
       const rand = Math.random().toString(36).slice(2, 10);
       const pathname = `photos/${eventId}/${slug(name) || "anonym"}--${rand}.${ext}`;
 
-      const blob = await upload(pathname, file, {
+      const blob = await upload(pathname, data, {
         access: "public",
         handleUploadUrl: "/api/photos",
-        contentType: file.type,
+        contentType: data.type || file.type,
       });
 
       setPhotos((prev) => [
