@@ -5,6 +5,7 @@ import Image from "next/image";
 import { PLACES } from "@/data/trip";
 import { schedule, TRIP_END, type Scheduled } from "@/lib/trip-time";
 import { walkingDirections } from "@/lib/links";
+import { KindIcon } from "./KindIcon";
 
 function Line({
   item,
@@ -28,7 +29,10 @@ function Line({
           />
         </div>
       ) : (
-        <div className="h-12 w-12 shrink-0 rounded-lg bg-surface-2 shadow-sm" />
+        <KindIcon
+          kind={item.event.kind}
+          className="h-12 w-12 rounded-lg shadow-sm"
+        />
       )}
 
       <div className="min-w-0 flex-1">

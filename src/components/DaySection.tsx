@@ -6,6 +6,7 @@ import {
   type EventItem,
 } from "@/data/trip";
 import { kr, mapsSearch, walkingDirections } from "@/lib/links";
+import { EventPhotos } from "./photos/EventPhotos";
 import { DayMap } from "./DayMap";
 import { DayTile } from "./DayTile";
 import { FlightCard } from "./FlightCard";
@@ -217,6 +218,8 @@ function EventRow({
                 )}
               </div>
             )}
+
+            {place && <EventPhotos eventId={event.id} />}
           </div>
 
           {photos && photos.length > 0 && place && (

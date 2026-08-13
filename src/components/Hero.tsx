@@ -13,14 +13,14 @@ export function Hero() {
     <header className="relative overflow-hidden">
       <div className="mx-auto max-w-5xl px-5 pt-14 pb-0 sm:pt-20">
         <p className="rise text-[13px] tracking-[0.01em] text-ink-3">
-          Consocio · Helsinki · 2026
+          20.–23. august 2026
         </p>
 
         <h1
-          className="rise display mt-5 text-[clamp(3.25rem,13vw,7.5rem)]"
+          className="rise display mt-5 max-w-[13ch] text-[clamp(2.8rem,9vw,5.75rem)]"
           style={{ animationDelay: "60ms" }}
         >
-          Helsinki
+          Consocio in Helsinki
         </h1>
 
         <p

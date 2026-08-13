@@ -16,7 +16,32 @@ npm install && npm run dev
 ## Deploying
 
 Push to the repo and import it in Vercel. The framework preset is detected
-automatically; there is nothing to configure and no environment variables.
+automatically. The site works with no configuration at all — the only optional
+piece is photo uploads, below.
+
+## Turning on trip photos
+
+Each stop can collect photos the group takes on the day. They live in a Vercel
+Blob store; without one the site behaves exactly as before and the upload
+buttons simply don't appear.
+
+1. In the Vercel dashboard: **Storage → Create → Blob**, and connect it to
+   this project.
+2. Redeploy. Vercel injects `BLOB_READ_WRITE_TOKEN` on its own — nothing to
+   copy by hand.
+3. For local development, pull it down with `vercel env pull .env.local`.
+
+Everything a photo needs is encoded in its path
+(`photos/<event id>/<name>--<random>.jpg`), so there is no database to keep in
+step and no migration to run. `GET /api/photos` lists them, uploads go
+straight from the phone to Blob via a short-lived token, and the name is asked
+for once and kept in `localStorage`.
+
+**Worth knowing:** there are no accounts. Anyone who has the site's URL can
+add a photo, and the delete button — shown only on your own photos — is an
+honour-system convenience rather than a permission check. That is a fine
+trade for an unlisted page shared between five friends; it would not be for a
+public one.
 
 ## Editing the programme
 

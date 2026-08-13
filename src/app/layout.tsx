@@ -24,11 +24,11 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "Helsinki 20.–23. august · Consocio",
+  title: "Consocio in Helsinki · 20.–23. august",
   description:
     "Programmet for Consocios tur til Helsinki: mad, saunaer, nationalpark, kort med ruter og budgettet.",
   openGraph: {
-    title: "Helsinki 20.–23. august · Consocio",
+    title: "Consocio in Helsinki · 20.–23. august",
     description:
       "Programmet for Consocios tur til Helsinki: mad, saunaer, nationalpark, kort med ruter og budgettet.",
     type: "website",

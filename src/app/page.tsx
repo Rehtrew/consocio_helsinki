@@ -4,10 +4,10 @@ import { DayNav } from "@/components/DayNav";
 import { DaySection } from "@/components/DaySection";
 import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/Hero";
-import { Letter } from "@/components/Letter";
 import { MapSection } from "@/components/map/MapSection";
 import { NowNext } from "@/components/NowNext";
 import { Practical } from "@/components/Practical";
+import { PhotoStoreProvider } from "@/components/photos/PhotoStore";
 import { Reveal } from "@/components/Reveal";
 
 export default function Home() {
@@ -23,14 +23,14 @@ export default function Home() {
           parent's box, and a snug wrapper would pin it to nothing. */}
       <DayNav />
 
-      <main className="mx-auto max-w-5xl px-5 pt-14">
-        <Letter />
-
-        <div className="mt-20 space-y-20">
-          {DAYS.map((day, i) => (
-            <DaySection key={day.id} day={day} index={i} />
-          ))}
-        </div>
+      <main className="mx-auto max-w-5xl px-5 pt-16">
+        <PhotoStoreProvider>
+          <div className="space-y-20">
+            {DAYS.map((day, i) => (
+              <DaySection key={day.id} day={day} index={i} />
+            ))}
+          </div>
+        </PhotoStoreProvider>
 
         <div className="mt-20">
           <Reveal>
