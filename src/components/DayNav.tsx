@@ -19,15 +19,47 @@ const SECTIONS = [
 
 const ALL_IDS = [...DAY_TABS.map((d) => d.id), ...SECTIONS.map((s) => s.id)];
 
+function MenuIcon({ open }: { open: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+      {[4, 9, 14].map((y, i) => (
+        <line
+          key={y}
+          x1="2"
+          x2="16"
+          y1={y}
+          y2={y}
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          style={{
+            // The middle line fades, the outer two meet in the middle: a cross
+            opacity: open && i === 1 ? 0 : 1,
+            transform: open
+              ? `translateY(${9 - y}px) rotate(${i === 0 ? 45 : i === 2 ? -45 : 0}deg)`
+              : "none",
+            transformOrigin: "9px 9px",
+            transition: "transform 200ms var(--ease-out), opacity 140ms linear",
+          }}
+        />
+      ))}
+    </svg>
+  );
+}
+
 export function DayNav() {
   const [active, setActive] = useState(DAY_TABS[0].id);
   const [stuck, setStuck] = useState(false);
+  const [open, setOpen] = useState(false);
   const [indicator, setIndicator] = useState<{ x: number; w: number } | null>(
     null,
   );
   const barRef = useRef<HTMLElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const refs = useRef<Record<string, HTMLAnchorElement | null>>({});
+
+  const openSection = SECTIONS.find((s) => s.id === active);
 
   // Which section is under the bar right now
   useEffect(() => {
@@ -63,6 +95,23 @@ export function DayNav() {
     return () => io.disconnect();
   }, []);
 
+  // Escape, or a tap anywhere else, closes the menu
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown);
+    };
+  }, [open]);
+
   // Slide the indicator to the active day
   useLayoutEffect(() => {
     const el = refs.current[active];
@@ -90,7 +139,7 @@ export function DayNav() {
   return (
     <nav
       ref={barRef}
-      className="sticky top-0 z-40 mt-14 bg-paper/85 backdrop-blur-xl"
+      className="sticky top-0 z-50 mt-14 bg-paper/85 backdrop-blur-xl"
       style={{
         boxShadow: stuck
           ? "0 1px 0 var(--line), 0 6px 20px -12px rgb(26 24 21 / 0.35)"
@@ -98,16 +147,16 @@ export function DayNav() {
         transition: "box-shadow 220ms var(--ease-out)",
       }}
     >
-      <div className="mx-auto flex max-w-5xl items-center gap-3 px-3">
-        {/* Days */}
+      <div className="mx-auto flex max-w-5xl items-center gap-2 px-3">
+        {/* Days — they get the whole bar, everything else lives in the menu */}
         <div
           ref={listRef}
-          className="relative flex flex-1 items-center gap-0.5 overflow-x-auto py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="relative flex flex-1 items-center gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {indicator && (
             <span
               aria-hidden
-              className="pointer-events-none absolute top-1.5 bottom-1.5 left-0 rounded-lg bg-surface shadow-sm"
+              className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-lg bg-surface shadow-sm"
               style={{
                 transform: `translateX(${indicator.x}px)`,
                 width: indicator.w,
@@ -125,35 +174,65 @@ export function DayNav() {
                 refs.current[d.id] = el;
               }}
               aria-current={active === d.id ? "true" : undefined}
-              className={`press relative z-10 flex shrink-0 items-baseline gap-1.5 rounded-lg px-3 py-2 text-[14px] font-medium whitespace-nowrap ${
+              // flex-1 shares the bar evenly, min-w-fit keeps the label whole
+              // on a narrow phone and lets the strip scroll instead.
+              className={`press relative z-10 flex min-w-fit flex-1 items-baseline justify-center gap-1.5 rounded-lg px-2.5 py-2.5 text-[15px] font-medium whitespace-nowrap ${
                 active === d.id ? "text-ink" : "text-ink-3 hover:text-ink-2"
               }`}
             >
-              <span className="sm:hidden">{d.short}</span>
-              <span className="hidden sm:inline">{d.full}</span>
-              <span className="tnum text-[12.5px] opacity-60">{d.date}.</span>
+              <span className="min-[500px]:hidden">{d.short}</span>
+              <span className="hidden min-[500px]:inline">{d.full}</span>
+              <span className="tnum text-[13px] opacity-60">{d.date}.</span>
             </a>
           ))}
         </div>
 
-        <span aria-hidden className="h-5 w-px shrink-0 bg-line" />
-
         {/* Everything that isn't a day */}
-        <div className="flex shrink-0 items-center gap-0.5">
-          {SECTIONS.map((s) => (
-            <a
-              key={s.id}
-              href={`#${s.id}`}
-              aria-current={active === s.id ? "true" : undefined}
-              className={`press rounded-lg px-2.5 py-2 text-[13.5px] whitespace-nowrap ${
-                active === s.id
-                  ? "text-ink underline decoration-line-strong underline-offset-[5px]"
-                  : "text-ink-3 hover:text-ink-2"
-              }`}
+        <div ref={menuRef} className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-haspopup="menu"
+            aria-label={openSection ? `Menu — ${openSection.label}` : "Menu"}
+            className={`press grid h-9 w-9 place-items-center rounded-lg ${
+              open || openSection
+                ? "bg-surface text-ink shadow-sm"
+                : "text-ink-2 hover:text-ink"
+            }`}
+          >
+            <MenuIcon open={open} />
+          </button>
+
+          {open && (
+            <div
+              role="menu"
+              className="menu-drop absolute top-[calc(100%+6px)] right-0 w-44 overflow-hidden rounded-xl bg-surface p-1 shadow-lg"
             >
-              {s.label}
-            </a>
-          ))}
+              {SECTIONS.map((s) => (
+                <a
+                  key={s.id}
+                  role="menuitem"
+                  href={`#${s.id}`}
+                  onClick={() => setOpen(false)}
+                  aria-current={active === s.id ? "true" : undefined}
+                  className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-[14.5px] ${
+                    active === s.id
+                      ? "bg-surface-2 font-medium text-ink"
+                      : "text-ink-2 hover:bg-surface-2"
+                  }`}
+                >
+                  {s.label}
+                  {active === s.id && (
+                    <span
+                      aria-hidden
+                      className="h-1.5 w-1.5 rounded-full bg-accent"
+                    />
+                  )}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </nav>

@@ -293,6 +293,29 @@ body {
   animation: rise 520ms var(--ease-out) both;
 }
 
+/* The nav menu drops out of the bar it belongs to */
+@keyframes menu-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.menu-drop {
+  animation: menu-drop 180ms var(--ease-out) both;
+  transform-origin: top right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-drop {
+    animation-name: none;
+  }
+}
+
 /* Reveal on scroll. Only hide things when there is scripting to bring them
    back — otherwise the page would be permanently blank. Browsers without the
    `scripting` media feature skip the block, which is the safe direction. */
@@ -317,6 +340,10 @@ body {
   background: var(--surface-2);
   font-family: var(--stack-sans);
   outline: none;
+  /* Leaflet stacks its panes at z-index 400 and up. The container itself is
+     only position: relative, so without a stacking context of its own those
+     panes are measured against the page and slide over the sticky nav. */
+  isolation: isolate;
 }
 
 .leaflet-container a {

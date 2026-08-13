@@ -68,7 +68,7 @@ export function Lightbox({
       role="dialog"
       aria-modal="true"
       onClick={onClose}
-      // Leaflet's panes reach z-index 800, so this has to clear them
+      // Above the sticky nav, which is the highest thing on the page
       className="fixed inset-0 z-[2000] grid place-items-center bg-ink/75 p-4 backdrop-blur-sm sm:p-6"
     >
       <div
